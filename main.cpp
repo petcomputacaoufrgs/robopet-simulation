@@ -27,6 +27,8 @@ void send()
 	 b->set_x(77);
 	 b->set_y(666);
 
+
+
 	 simtotracker.send(packet);
 	printf("Sent Sim-To-Tracker\n");
 }
