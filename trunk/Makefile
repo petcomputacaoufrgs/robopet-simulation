@@ -1,11 +1,10 @@
-CC = colorgcc
+#CC = colorgcc #sudo apt-get install colorgcc
+CC = gcc
 FLAGS = -Wall -I$(AI_PATH) -I$(PROTOBUF_H) -I$(SOCKETS_PATH) -lstdc++ -lprotobuf
 
-#AI_PATH = ../IA/lib
 AI_PATH = ../robopet-ai/lib
 AI_OBJECTS = $(AI_PATH)/point.o $(AI_PATH)/vector.o $(AI_PATH)/movingObject.o
 
-#PROTOBUF_PATH = ../Communication/SSL
 PROTOBUF_PATH = ../robopet-communication/
 PROTOBUF_H = $(PROTOBUF_PATH)/packets
 
