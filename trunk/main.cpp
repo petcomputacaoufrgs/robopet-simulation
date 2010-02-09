@@ -5,8 +5,8 @@
 #include "vector.h"
 
 #define MAX_ROBOTS 10
-#define CONSTANTE_DESLOCAMENTO 0.1 //deve ser menor que 1 e maior que 0
-#define ROBOT_RADIUS 1
+#define CONSTANTE_DESLOCAMENTO 0.01 //deve ser menor que 1 e maior que 0
+#define ROBOT_RADIUS 100
 #define CONSTANTE_POSICIONAMENTO_INICIAL 100
 
 RoboCupSSLServer simtotracker(PORT_SIM_TO_TRACKER, IP_SIM_TO_TRACKER);
@@ -28,7 +28,7 @@ void receive()
 	SSL_WrapperPacket packet;
 	if (aitosim.receive(packet) && packet.has_aitosim()) {
 		//printf("----------------------------");
-		//printf("Received AI-To-SIM!\n");
+		//printf("Received AI-To-SIM! --\n");
 
 		AIToSim data = packet.aitosim();
 		int team = data.team();
@@ -40,29 +40,39 @@ void receive()
 
 void process()
 {
-	for(int team = 0; team < TEAM_TOTAL; team++)
-		for(int i = 0; i < robot_total[team]; i++) {
-			Vector dir = (robot[team][i].future_pos - robot[team][i].pos).normalize();
-			//robot[team][i].pos = robot[team][i].pos + dir * CONSTANTE_DESLOCAMENTO;
-
-			Vector u = robot[team][i].pos;
-			printf("cur_pos(%f, %f)\n", u.getX(), u.getY());
-			Vector v = robot[team][i].future_pos;
-			printf("fut_pos(%f, %f)\n", v.getX(), v.getY());
-	}
+    //Vector robot_old_pos[TEAM_TOTAL][MAX_ROBOTS];
 
 	bool changed = true;
 	while(changed) { //collision ball <-> robots
 		changed = false;
 		for(int team = 0; team < TEAM_TOTAL; team++)
 			for(int i = 0; i < robot_total[team]; i++) {
+			    printf("team %i robot %i distanceToBall %f --\n", team, i, robot[team][i].pos.getDistance(ball.pos));
 				if(robot[team][i].pos.getDistance(ball.pos) < ROBOT_RADIUS) {
 					Vector dir = (robot[team][i].future_pos - robot[team][i].pos).normalize();
-					//ball.pos = robot[team][i].pos + dir * ROBOT_RADIUS;
-					//changed = true;
+					printf("dir: %f, %f --\n", dir.getX(), dir.getY());
+					ball.pos = robot[team][i].pos + dir * ROBOT_RADIUS * 1.1;
+					printf("distance: %f --\n", robot[team][i].pos.getDistance(ball.pos));
+					assert(robot[team][i].pos.getDistance(ball.pos) >= ROBOT_RADIUS);
+					changed = true;
 				}
 			}
 	}
+
+	for(int team = 0; team < TEAM_TOTAL; team++)
+		for(int i = 0; i < robot_total[team]; i++) {
+		    //robot_old_pos[team][i] = robot[team][i].pos;
+
+			Vector dir = (robot[team][i].future_pos - robot[team][i].pos).normalize();
+			robot[team][i].pos = robot[team][i].pos + dir * CONSTANTE_DESLOCAMENTO;
+
+			Vector u = robot[team][i].pos;
+			printf("cur_pos[%5i](%5i, %5i) --\n", i, (int) u.getX(), (int) u.getY());
+			Vector v = robot[team][i].future_pos;
+			printf("fut_pos[%5i](%5i, %5i) --\n", i, (int) v.getX(), (int) v.getY());
+	}
+
+	printf("ball(%5i, %5i) --\n", (int) ball.pos.getX(), (int) ball.pos.getY());
 	//TODO: collision robots <-> robots
 }
 
@@ -90,9 +100,8 @@ void send()
 
 	 simtotracker.send(packet);
 
-	 printf("ball (%5.0f, %5.0f)\n", ball.pos.getX(), ball.pos.getY());
-	 printf("packet.robots_blue_size(): %i\n", simtotrackerPacket->robots_blue_size());
-	 printf("packet.robots_yellow_size(): %i\n", simtotrackerPacket->robots_yellow_size());
+	 printf("packet.robots_blue_size(): %5i --\n", simtotrackerPacket->robots_blue_size());
+	 printf("packet.robots_yellow_size(): %5i --\n", simtotrackerPacket->robots_yellow_size());
 
 	printf("Sent Sim-To-Tracker\n");
 }
@@ -110,16 +119,17 @@ int main()
 	for(int team = 0; team < TEAM_TOTAL; team++)
 		for(int i = 0; i < robot_total[team]; i++) {
 			robot[team][i].pos = robot[team][i].future_pos =
-				Vector(i * CONSTANTE_POSICIONAMENTO_INICIAL + team * MAX_ROBOTS * CONSTANTE_POSICIONAMENTO_INICIAL,
+				Vector((i + 1) * CONSTANTE_POSICIONAMENTO_INICIAL + team * MAX_ROBOTS * CONSTANTE_POSICIONAMENTO_INICIAL,
 						 (MAX_ROBOTS - i) * CONSTANTE_POSICIONAMENTO_INICIAL + team * MAX_ROBOTS * CONSTANTE_POSICIONAMENTO_INICIAL);
 		}
-	ball.pos = Vector(1000, 1000);
+	ball.pos = Vector(200, 1100);
 
 	clrscr();
 	while(1) {
-		rewindscr();
+		//rewindscr();
 		receive();
 		process();
 		send();
 	}
 }
+
