@@ -1,5 +1,5 @@
-#CC = colorgcc #sudo apt-get install colorgcc
-CC = gcc
+CC = colorgcc #sudo apt-get install colorgcc
+#CC = gcc
 FLAGS = -Wall -I$(AI_PATH) -I$(PROTOBUF_H) -I$(SOCKETS_PATH) -lstdc++ -lprotobuf
 
 AI_PATH = ../robopet-ai/lib
@@ -32,4 +32,4 @@ all: simulator
 
 simulator: main.cpp $(AI_OBJECTS) $(PROTOBUF_O)
 	@echo $@
-	@$(CC) -o $@ $^ $(FLAGS)
+	@$(CC) -o $@ $^ $(FLAGS) `pkg-config --cflags --libs protobuf`
