@@ -126,7 +126,7 @@ int main()
 
 	clrscr();
 	while(1) {
-		//rewindscr();
+		rewindscr();
 		receive();
 		process();
 		send();
