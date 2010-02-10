@@ -17,7 +17,7 @@ int DEBUG = 1;
 struct Robot {
    Vector pos, future_pos;
 } robot[TEAM_TOTAL][MAX_ROBOTS];
-int robot_total[TEAM_TOTAL] = {1, 0}; //0 blue robots and 0 yellow robots
+int robot_total[TEAM_TOTAL] = {1, 1}; //0 blue robots and 0 yellow robots
 
 struct Ball {
 	Vector pos;
@@ -67,9 +67,9 @@ void process()
 			robot[team][i].pos = robot[team][i].pos + dir * CONSTANTE_DESLOCAMENTO;
 
 			Vector u = robot[team][i].pos;
-			printf("cur_pos[%5i](%5i, %5i) --\n", i, (int) u.getX(), (int) u.getY());
+			printf("cur_pos[%2i][%5i](%5i, %5i) --\n", team, i, (int) u.getX(), (int) u.getY());
 			Vector v = robot[team][i].future_pos;
-			printf("fut_pos[%5i](%5i, %5i) --\n", i, (int) v.getX(), (int) v.getY());
+			printf("fut_pos[%2i][%5i](%5i, %5i) --\n", team, i, (int) v.getX(), (int) v.getY());
 	}
 
 	printf("ball(%5i, %5i) --\n", (int) ball.pos.getX(), (int) ball.pos.getY());
