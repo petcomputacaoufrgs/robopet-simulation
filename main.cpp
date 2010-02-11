@@ -125,7 +125,13 @@ int main()
 	ball.pos = Vector(200, 1100);
 
 	clrscr();
+	int scrCount = 0;
 	while(1) {
+	    scrCount++;
+	    if(scrCount == SCR_CLEAR_DELAY) {
+	        scrCount = 0;
+	        clrscr();
+	    }
 		rewindscr();
 		receive();
 		process();
