@@ -3,7 +3,7 @@ CC = colorgcc #sudo apt-get install colorgcc
 FLAGS = -Wall -I$(AI_PATH) -I$(PROTOBUF_H) -I$(SOCKETS_PATH) -lstdc++ -lprotobuf
 
 AI_PATH = ../robopet-ai/lib
-AI_OBJECTS = $(AI_PATH)/point.o $(AI_PATH)/vector.o $(AI_PATH)/movingObject.o
+AI_OBJECTS = $(AI_PATH)/point.o $(AI_PATH)/vector.o $(AI_PATH)/movingObject.o $(AI_PATH)/physicsRobot.o
 
 PROTOBUF_PATH = ../robopet-communication/
 PROTOBUF_H = $(PROTOBUF_PATH)/packets
