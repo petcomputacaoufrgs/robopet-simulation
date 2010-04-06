@@ -87,7 +87,7 @@ void send()
 
 	for(int team = 0; team < TEAM_TOTAL; team++)
 		for(int i = 0; i < robot_total[team]; i++) {
-	 		SimToTracker::Robot *r =
+	 		RobotSim *r =
 	 			(team == TEAM_BLUE ?
 	 				simtotrackerPacket->add_robots_blue() :
 	 				simtotrackerPacket->add_robots_yellow());

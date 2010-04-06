@@ -7,7 +7,7 @@ ROBOPET_LIB = $(ROBOPET_PATH)/robopet.a #$(AI_PATH)/point.o $(AI_PATH)/vector.o 
 
 COMMUNICATION_PATH = ../robopet-communication/
 COMMUNICATION_H = $(COMMUNICATION_PATH)/packets
-COMMUNICATION_LIB = $(COMMUNICATION_PATH)/communication.a
+PROTOBUF_FILES = $(COMMUNICATION_PATH)/communication.a
 
 SOCKETS_PATH = $(COMMUNICATION_PATH)/socket
 
