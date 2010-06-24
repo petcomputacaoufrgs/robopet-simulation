@@ -1,7 +1,7 @@
 #include <stdio.h>
 
-#include "ssl_client.h"
-#include "ssl_server.h"
+#include "rp_client.h"
+#include "rp_server.h"
 #include "vector.h"
 #include "physicsRobot.h"
 
@@ -10,8 +10,8 @@
 #define ROBOT_RADIUS 100
 #define CONSTANTE_POSICIONAMENTO_INICIAL 100
 
-RoboCupSSLServer simtotracker(PORT_SIM_TO_TRACKER, IP_SIM_TO_TRACKER);
-RoboCupSSLClient aitosim(PORT_AI_TO_SIM, IP_AI_TO_SIM);
+RoboPETServer simtotracker(PORT_SIM_TO_TRACKER, IP_SIM_TO_TRACKER);
+RoboPETClient aitosim(PORT_AI_TO_SIM, IP_AI_TO_SIM);
 
 int DEBUG = 1;
 
@@ -27,7 +27,7 @@ struct Ball {
 
 void receive()
 {
-	SSL_WrapperPacket packet;
+	RoboPET_WrapperPacket packet;
 	if (aitosim.receive(packet) && packet.has_aitosim()) {
 		printf("----------------------------");
 		printf("Received AI-To-SIM! --\n");
@@ -80,7 +80,7 @@ void process()
 
 void send()
 {
-	 SSL_WrapperPacket packet;
+	 RoboPET_WrapperPacket packet;
 
 	 SimToTracker *simtotrackerPacket = packet.mutable_simtotracker();
 	 SimToTracker::Ball *b = simtotrackerPacket->mutable_ball();
@@ -89,8 +89,8 @@ void send()
 		for(int i = 0; i < robot_total[team]; i++) {
 	 		SimToTracker::Robot *r =
 	 			(team == TEAM_BLUE ?
-	 				simtotrackerPacket->add_robots_blue() :
-	 				simtotrackerPacket->add_robots_yellow());
+	 				simtotrackerPacket->add_blue_robots() :
+	 				simtotrackerPacket->add_yellow_robots());
 
 	 		r->set_x(robot[team][i]._pos.getX());
 	 		r->set_y(robot[team][i]._pos.getY());
@@ -102,8 +102,8 @@ void send()
 
 	 simtotracker.send(packet);
 
-	 printf("packet.robots_blue_size(): %5i --\n", simtotrackerPacket->robots_blue_size());
-	 printf("packet.robots_yellow_size(): %5i --\n", simtotrackerPacket->robots_yellow_size());
+	 printf("packet.robots_blue_size(): %5i --\n", simtotrackerPacket->blue_robots_size());
+	 printf("packet.robots_yellow_size(): %5i --\n", simtotrackerPacket->yellow_robots_size());
 
 	printf("Sent Sim-To-Tracker\n");
 }
