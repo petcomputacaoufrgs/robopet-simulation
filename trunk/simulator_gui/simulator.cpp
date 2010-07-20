@@ -16,7 +16,7 @@
 * 3. This notice may not be removed or altered from any source distribution.
 */
 
-#include "../Include/Box2D.h"
+#include "/usr/include/Box2D.h"
 #include <GL/glut.h>
 #include <cstdio>
 #include <iostream>
@@ -25,7 +25,7 @@ using namespace std;
 #define WORLD_X 1000
 #define WORLD_Y 1000
 
-#define NROBOTS 3
+#define NROBOTS 4
 #define ROBOT_R 50
 #define ROBOT_DENSITY 0.1
 
@@ -168,6 +168,7 @@ void initObjects()
     objects[0] = newDynamicCircle( 30,30, ROBOT_R, ROBOT_DENSITY, 1, 0.5, 0.05,  b2Color(1,0,0));
     objects[1] = newDynamicCircle(-30,-30,ROBOT_R, ROBOT_DENSITY, 1, 0.5, 0.05,  b2Color(1,0,0));
     objects[2] = newDynamicCircle(-10,-30,ROBOT_R, ROBOT_DENSITY, 1, 0.5, 0.05,  b2Color(1,0,0));
+	objects[3] = newDynamicCircle(-20,-400,ROBOT_R, ROBOT_DENSITY, 1, 0.5, 0.05,  b2Color(1,0,0));
     ball = newDynamicCircle(        0,  0,BALL_R,  0.5,           1, 0.9, 0.03,  b2Color(1,0,0));	
 }
 
@@ -197,7 +198,7 @@ void initGlut(int argc, char** argv)
 	glutIdleFunc (drawScene);
 	glutSpecialFunc(keyboardFunc);
 	
-	glutMainLoop(); 	
+	glutMainLoop();
 }	
 
 // This is a simple example of building and running a simulation
