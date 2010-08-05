@@ -27,11 +27,9 @@ RoboPETClient radiotosim(PORT_RADIO_TO_SIM, IP_RADIO_TO_SIM);
 
 b2World* world;
 
-int DEBUG = 1;
-
 struct Robot {
 	b2Body* body;
-	Vector _moveVector;
+	Vector _forces;
 }robot = {NULL, Vector(0,0)};
 Robot robots[TEAM_TOTAL][MAX_ROBOTS];
 
@@ -39,73 +37,25 @@ int robot_total[TEAM_TOTAL] = {1, 1};
 
 struct Ball {
 	b2Body*  body;	
-	Vector   _moveVector;
+	Vector   _forces;
 } ball;
 
-void receive()
-{/*
-	RoboPET_WrapperPacket packet;
-	if (aitosim.receive(packet) && packet.has_aitosim()) {
-		printf("----------------------------");
-		printf("Received AI-To-SIM! --\n");
 
-		AIToSim data = packet.aitosim();
+void receive()
+{
+	RoboPET_WrapperPacket packet;
+	if (radiotosim.receive(packet) && packet.has_radiotosim()) {
+		printf("----------------------------");
+		printf("Received Radio-To-SIM! --\n");
+
+		RadioToSim data = packet.radiotosim();
 		int team = data.team();
 		for(int i = 0; i < data.robots_size(); i++) {
-			robot[team][i]._future_pos = Vector(data.robots(i).future_x(), data.robots(i).future_y());
+			robots[team][i]._forces = Vector(data.robots(i).force_x(), data.robots(i).force_y());
 		}
 	}
-	*/
-}
-
-void process()
-{
-	// Prepare for simulation. Typically we use a time step of 1/60 of a
-	// second (60Hz) and 10 iterations. This provides a high quality simulation
-	// in most game scenarios.
-	float32 timeStep = 1.0f / 60.0f;
-	int32 iterations = 10;
-		
-	// Instruct the world to perform a single step of simulation. It is
-	// generally best to keep the time step and iterations fixed.
-	world->Step(timeStep, iterations);
 	
-	/*
-    //Vector robot_old_pos[TEAM_TOTAL][MAX_ROBOTS];
-
-	bool changed = true;
-	while(changed) { //collision ball <-> robots
-		changed = false;
-		for(int team = 0; team < TEAM_TOTAL; team++)
-			for(int i = 0; i < robot_total[team]; i++) {
-			    printf("team %i robot %i distanceToBall %f --\n", team, i, robot[team][i]._pos.getDistance(ball._pos));
-				if(robot[team][i]._pos.getDistance(ball._pos) < ROBOT_RADIUS) {
-					Vector dir = (robot[team][i]._future_pos - robot[team][i]._pos).normalize();
-					printf("dir: %f, %f --\n", dir.getX(), dir.getY());
-					ball._pos = robot[team][i]._pos + dir * ROBOT_RADIUS * 1.1;
-					printf("distance: %f --\n", robot[team][i]._pos.getDistance(ball._pos));
-					assert(robot[team][i]._pos.getDistance(ball._pos) >= ROBOT_RADIUS);
-					changed = true;
-				}
-			}
-	}
-
-	for(int team = 0; team < TEAM_TOTAL; team++)
-		for(int i = 0; i < robot_total[team]; i++) {
-		    //robot_old_pos[team][i] = robot[team][i].pos;
-
-			Vector dir = (robot[team][i]._future_pos - robot[team][i]._pos).normalize();
-			robot[team][i]._pos = robot[team][i]._pos + dir * CONSTANTE_DESLOCAMENTO;
-
-			Vector u = robot[team][i]._pos;
-			printf("cur_pos[%2i][%5i](%5i, %5i) --\n", team, i, (int) u.getX(), (int) u.getY());
-			Vector v = robot[team][i]._future_pos;
-			printf("fut_pos[%2i][%5i](%5i, %5i) --\n", team, i, (int) v.getX(), (int) v.getY());
-	}
-
-	printf("ball(%5i, %5i) --\n", (int) ball._pos.getX(), (int) ball._pos.getY()); */
 }
-
 
 void send()
 {
@@ -135,6 +85,25 @@ void send()
 	 printf("packet.robots_yellow_size(): %5i --\n", simtotrackerPacket->yellow_robots_size());
 
 	printf("Sent Sim-To-Tracker\n");
+}
+
+
+void process()
+{
+	// Prepare for simulation. Typically we use a time step of 1/60 of a
+	// second (60Hz) and 10 iterations. This provides a high quality simulation
+	// in most game scenarios.
+	float32 timeStep = 1.0f / 60.0f;
+	int32 iterations = 10;
+		
+	//
+	// --> Apply here the forces on the robots, as well as possible kicking and dribling forces.
+	//
+	
+		
+	// Instruct the world to perform a single step of simulation. It is
+	// generally best to keep the time step and iterations fixed.
+	world->Step(timeStep, iterations);
 }
 
 
@@ -233,8 +202,8 @@ int main()
 	        clrscr();
 	    }
 		rewindscr();
-		//receive();
+		receive();
 		process();
-		//send();
+		send();
 	}
 }
