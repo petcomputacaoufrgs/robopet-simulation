@@ -23,7 +23,7 @@ using namespace std;
 //-------------
 
 RoboPETServer simtotracker(PORT_SIM_TO_TRACKER, IP_SIM_TO_TRACKER);
-RoboPETClient aitosim(PORT_AI_TO_SIM, IP_AI_TO_SIM);
+RoboPETClient radiotosim(PORT_RADIO_TO_SIM, IP_RADIO_TO_SIM);
 
 b2World* world;
 
@@ -218,7 +218,7 @@ int main()
 
 	printf("Simulator Running!\n");
 
-	aitosim.open(false);
+	radiotosim.open(false);
 
 	printf("Press <Enter> to open connection with client...\n");
 	getchar();
