@@ -8,10 +8,10 @@ COMMUNICATION_LIB = $(COMMUNICATION_PATH)/communication.a
 
 SOCKETS_PATH = $(COMMUNICATION_PATH)/socket
 
-LIB_PATH = ./Include/
+INCLUDE_PATH = /usr/local/include/Box2D
+LIB_PATH = /usr/local/lib/libBox2D.a
 
-
-FLAGS = -Wall -I$(ROBOPET_PATH) -I$(COMMUNICATION_H) -I$(SOCKETS_PATH) -I$(LIB_PATH)  -lprotobuf -lbox2d
+FLAGS = -Wall -I$(ROBOPET_PATH) -I$(COMMUNICATION_H) -I$(SOCKETS_PATH) -I$(INCLUDE_PATH)  -lprotobuf $(LIB_PATH)
 
 ROBOPET_PATH = ../lib
 ROBOPET_LIB = $(ROBOPET_PATH)/robopet.a
