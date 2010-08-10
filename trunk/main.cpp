@@ -11,6 +11,7 @@ using namespace std;
 #define CONSTANTE_DESLOCAMENTO 0.01 //deve ser menor que 1 e maior que 0
 #define ROBOT_RADIUS 100
 #define CONSTANTE_POSICIONAMENTO_INICIAL 100
+#define TRESHOLD 0.5
 
 //-------------
 #define WORLD_X 1000
@@ -29,9 +30,10 @@ b2World* world;
 
 
 struct Robot {
+
 	b2Body* body;
 	Vector forces;
-	float angle;
+	float displacement_angle;
 	bool doKick;
 	bool doDrible;
 };
@@ -56,12 +58,17 @@ void receive()
 		RadioToSim data = packet.radiotosim();
 		//Blue team == 0, Yellow team == 1 ??
 		//Yellow team == 0, Blue team == 1 ??
-		int team = data.team();
-		for(int i = 0; i < data.robots_size(); i++) {
-			robots[team][i].forces = Vector(data.robots(i).force_x(), data.robots(i).force_y());
-			robots[team][i].angle = data.robots(i).displacement_theta();
-			robots[team][i].doKick = data.robots(i).kick();
-			robots[team][i].doDrible = data.robots(i).drible();
+		for(int i = 0; i < data.yellow_robots_size(); i++) {
+			robots[0][i].forces = Vector(data.yellow_robots(i).force_x(), data.yellow_robots(i).force_y());
+			robots[0][i].displacement_angle = data.yellow_robots(i).displacement_theta();
+			robots[0][i].doKick = data.yellow_robots(i).kick();
+			robots[0][i].doDrible = data.yellow_robots(i).drible();
+		}
+		for(int i = 0; i < data.blue_robots_size(); i++) {
+			robots[1][i].forces = Vector(data.blue_robots(i).force_x(), data.blue_robots(i).force_y());
+			robots[1][i].displacement_angle = data.blue_robots(i).displacement_theta();
+			robots[1][i].doKick = data.blue_robots(i).kick();
+			robots[1][i].doDrible = data.blue_robots(i).drible();
 		}
 	}
 
@@ -97,21 +104,61 @@ void send()
 	printf("Sent Sim-To-Tracker\n");
 }
 
+bool pointingToBall(int i, int j) {
+
+	//ball_vec is the vector from the bot center to the ball center
+	RP::Vector ball_vec(robots[i][j].body->GetWorldPoint(b2Vec2(0,0)).x - ball.body->GetWorldPoint(b2Vec2(0,0)).x,
+						robots[i][j].body->GetWorldPoint(b2Vec2(0,0)).y - ball.body->GetWorldPoint(b2Vec2(0,0)).y);
+
+	RP::Vector norm_ball_vec = ball_vec.normalize();
+
+	RP::Vector bot_vec( sin(robots[i][j].body->GetAngle())*ROBOT_RADIUS,
+						cos(robots[i][j].body->GetAngle())*ROBOT_RADIUS);
+
+	RP::Vector norm_bot_vec =  bot_vec.normalize();
+	//ball_vec (dot_product) bot_vec = |bal_vec| * |bot_vec| * cos(theta)
+	//|bal_vec| == |bot_vec| == 1
+	//if theta == 0, the bot points to the ball
+
+	if(1-TRESHOLD <= ball_vec.dotProduct(norm_bot_vec) && ball_vec.dotProduct(norm_bot_vec) <= 1) {
+		return true;
+	}
+
+	return false;
+
+}
 
 void process()
 {
 	b2Vec2 bot_move;
-
+	b2Vec2 ball_move;
 	int i, j;
 
 	//iterate to move the bots
 	for (i = 0; i < TEAM_TOTAL; i++) {
 		for (j = 0; j < MAX_ROBOTS; j++) {
 
-			bot_move = b2Vec2( robots[i][j].forces.getX(),robots[i][j].forces.getY() );
+			bot_move = b2Vec2(robots[i][j].forces.getX(), robots[i][j].forces.getY());
 
-			robots[i][j].body->ApplyForce(bot_move,robots[i][j].body->GetWorldCenter());
+			robots[i][j].body->ApplyForce(bot_move, robots[i][j].body->GetWorldCenter());
 			//robots[i][j].body->ApplyImpulse(bot_move,robots[i][j].body->GetWorldCenter());
+
+			//rotates the bot
+			//robots[i][j].point_angle += robots[i][j].displacement_angle;
+
+
+			if(robots[i][j].doKick) {
+
+				//The bot needs to "point" to the ball to kick it
+				if(pointingToBall(i, j)) {
+					//crazy values. We need to measure them afer
+					Vector ball_force(robots[i][j].body->GetWorldPoint(b2Vec2(0,0)).x - ball.body->GetWorldPoint(b2Vec2(0,0)).x,
+					   				  robots[i][j].body->GetWorldPoint(b2Vec2(0,0)).y - ball.body->GetWorldPoint(b2Vec2(0,0)).y);
+
+					ball_move = b2Vec2(ball_force.getX()*1000,ball_force.getY()*1000);
+					ball.body->ApplyForce(ball_move, ball.body->GetWorldCenter());
+				}
+			}
 		}
 	}
 
@@ -142,7 +189,7 @@ b2Body* newWall(float x, float y, float sizex, float sizey)
 
 	b2PolygonShape bodyShapeDef;
 	bodyShapeDef.SetAsBox(sizex, sizey);
-	
+
 	b2FixtureDef fixtureDef;
 	fixtureDef.shape = &bodyShapeDef;
 	fixtureDef.density = 1.0f;
@@ -162,11 +209,11 @@ b2Body* newDynamicCircle(float x, float y, float radius, float density, float fr
     bd.linearDamping = damping;
 
 	b2Body* body = world->CreateBody(&bd);
-	
+
 	b2CircleShape circle;
 	circle.m_radius = radius;
 	circle.m_p.Set(0,0);
-	
+
 	b2FixtureDef fixtureDef;
 	fixtureDef.shape = &circle;
 	fixtureDef.friction = friction;
