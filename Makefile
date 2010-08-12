@@ -11,7 +11,7 @@ SOCKETS_PATH = $(COMMUNICATION_PATH)/socket
 INCLUDE_PATH = /usr/local/include/Box2D
 LIB_PATH = /usr/local/lib/libBox2D.a
 
-FLAGS = -Wall -I$(ROBOPET_PATH) -I$(COMMUNICATION_H) -I$(SOCKETS_PATH) -I$(INCLUDE_PATH)  -lprotobuf $(LIB_PATH)
+FLAGS = -Wall -I$(ROBOPET_PATH) -I$(COMMUNICATION_H) -I$(SOCKETS_PATH) -I$(INCLUDE_PATH)  -lprotobuf $(LIB_PATH) -lglut
 
 ROBOPET_PATH = ../lib
 ROBOPET_LIB = $(ROBOPET_PATH)/robopet.a
