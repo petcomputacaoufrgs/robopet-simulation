@@ -16,10 +16,10 @@ void receive()
 		printf("Received Radio-To-SIM! --\n");
 
 		RadioToSim data = packet.radiotosim();
-		
+
 		playersTotal[TEAM_BLUE] = data.yellow_robots_size();
 		playersTotal[TEAM_YELLOW] = data.blue_robots_size();
-		
+
 		for(int i = 0; i < playersTotal[TEAM_YELLOW]; i++) {
 			robots[0][i].forces = Vector(data.yellow_robots(i).force_x(), data.yellow_robots(i).force_y());
 			robots[0][i].displacement_angle = data.yellow_robots(i).displacement_theta();
@@ -30,7 +30,8 @@ void receive()
 			robots[1][i].forces = Vector(data.blue_robots(i).force_x(), data.blue_robots(i).force_y());
 			robots[1][i].displacement_angle = data.blue_robots(i).displacement_theta();
 			robots[1][i].doKick = data.blue_robots(i).kick();
-		cout<<"kick="<<robots[0][0].doKick<<endl;	robots[1][i].doDrible = data.blue_robots(i).drible();
+			cout<<"kick="<<robots[0][0].doKick<<endl;
+			robots[1][i].doDrible = data.blue_robots(i).drible();
 		}
 	}
 }

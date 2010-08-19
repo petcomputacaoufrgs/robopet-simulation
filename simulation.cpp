@@ -14,15 +14,17 @@ bool Robot::pointingToBall() {
 
 	ball_vec.normalizeMe();
 
+	//bot_vec indicates where the bot is pointing
 	RP::Vector bot_vec( cos(body->GetAngle())*ROBOT_R,
 						sin(body->GetAngle())*ROBOT_R);
 
 	bot_vec.normalizeMe();
 	//ball_vec (dot_product) bot_vec = |bal_vec| * |bot_vec| * cos(theta)
-	//|bal_vec| == |bot_vec| == 1
-	//if theta == 0, the bot points to the ball
+	//|bal_vec| == |bot_vec| == 1, because both are normalized
+	//if theta ~ 0, the bot points to the ball
 
-	if(1-TRESHOLD <= ball_vec.dotProduct(bot_vec) && ball_vec.dotProduct(bot_vec) <= 1) {
+	if(1-TRESHOLD <= ball_vec.dotProduct(bot_vec) &&
+	   ball_vec.dotProduct(bot_vec) <= 1) {
 		return true;
 	}
 
@@ -31,14 +33,16 @@ bool Robot::pointingToBall() {
 }
 
 bool Robot::closeToBall() {
-	
+
+	//ball_vec is the vector from the bot center to the ball center
 	RP::Vector ball_vec(ball.body->GetPosition().x - body->GetPosition().x,
 						ball.body->GetPosition().y - body->GetPosition().y);
 
+	//if the distance from the bot center to the ball center is (almost) zero, bot's close to the ball
 	if(ball_vec.getNorm() <= ROBOT_R + BALL_R + K_TRESHOLD) {
 		return true;
 	}
-	
+
 	return false;
 }
 
@@ -81,7 +85,7 @@ void process()
 						Vector ball_force(	robots[i][j].body->GetPosition().x - ball.body->GetPosition().x,
 					   				  		robots[i][j].body->GetPosition().y - ball.body->GetPosition().y);
 
-						int dribleForce = 100;
+						int dribleForce = 100/4;
 						ball_move = b2Vec2(ball_force.getX() * dribleForce, ball_force.getY() * dribleForce);
 						ball.body->ApplyForce(ball_move, ball.body->GetPosition());
 					}
@@ -102,7 +106,7 @@ void process()
 	// Instruct the world to perform a single step of simulation. It is
 	// generally best to keep the time step and iterations fixed.
 	world->Step(timeStep, velocityIterations, positionIterations);
-	
+
 	// Clear applied body forces. We didn't apply any forces, but you
 	// should know about this function.
 	world->ClearForces();
@@ -177,39 +181,39 @@ void keyboardFunc(unsigned char key, int xmouse, int ymouse)
 {
 		b2Vec2 fv;
 		int force = 100000000/5; // Newtons*100
-		
+
         if( key == 'a' ) {
 			fv = b2Vec2(-force,0);
         }
-        
+
         if( key == 'd' ) {
 	        fv = b2Vec2(force,0);
         }
-        
+
         if( key == 's' ) {
             fv = b2Vec2(0,-force);
         }
-        
+
         if( key == 'w' ) {
             fv = b2Vec2(0,force);
         }
-        			
+
 		robots[0][0].body->ApplyForce(fv,robots[0][0].body->GetWorldCenter());
-		
+
 		if( key == 'i' ) {
 			robots[0][0].doKick = 1;
 			cout<<"kick="<<robots[0][0].doKick<<endl;
 		}
-		
+
 		if( key == 'k' ) {
 			robots[0][0].doDrible = !robots[0][0].doDrible;
 			cout<<"drible="<<robots[0][0].doDrible<<endl;
-		}		
+		}
 		#include "Box2D.h"
 		if( key == 'j' ) {
 			robots[0][0].body->ApplyTorque( force );
 		}
-		
+
 		if( key == 'l' ) {
 			robots[0][0].body->ApplyTorque( -force );
 		}
@@ -223,7 +227,7 @@ void drawScene()
 	gluOrtho2D(-WORLD_X, WORLD_X, -WORLD_Y, WORLD_Y);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity ();
-	
+
 	glClear(GL_COLOR_BUFFER_BIT);
 
 
@@ -245,22 +249,22 @@ void drawScene()
 			glEnd();
 			drawLine(position.x , position.y, position.x + cos(angle) * ROBOT_R , position.y + sin(angle) * ROBOT_R);
 		}
-	
+
 	// draw ball
 	float arad;
 	glBegin(GL_LINE_LOOP);
 		for(float ang = 0; ang < 360; ang+=10)
 		{
 			b2Vec2 position = ball.body->GetPosition();
-			
+
 			arad = ang * M_PI / 180.0;
 			glVertex2f( position.x + cos(arad)*BALL_R,
 						position.y + sin(arad)*BALL_R);
 		}
 	glEnd();
-	
+
 	glutSwapBuffers();
-	
+
 	// SIMULATOR MAIN LOOP
 		/*clrscr();
 		static int scrCount = 0;
@@ -274,7 +278,7 @@ void drawScene()
 		*/
 		process();
 		//send();
-		
+
 }
 
 void initWorld()
@@ -290,9 +294,9 @@ void initGlut(int argc, char** argv)
     glutInitWindowSize (500,500);
     glutInitWindowPosition (500, 500);
     glutCreateWindow("RoboPET Simulator - controls: WASD, IJKL");
-    
+
 	glutIdleFunc (drawScene);
 	glutKeyboardFunc(keyboardFunc);
-	
+
 	glutMainLoop();
 }
