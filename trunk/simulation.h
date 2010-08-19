@@ -53,8 +53,8 @@ void receive();
 
 void send();
 
+//makes each step of simulation
 void process();
-
 
 // create a box physics object which will be used for the walls
 b2Body* newWall(float x, float y, float sizex, float sizey);
