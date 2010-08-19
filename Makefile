@@ -13,7 +13,7 @@ ROBOPET_PATH = ../lib
 ROBOPET_LIB = $(ROBOPET_PATH)/robopet.a
 BOX2D_LIB = /usr/local/lib/libBox2D.a
 
-FLAGS = -Wall -I$(ROBOPET_PATH) -I$(COMMUNICATION_H) -I$(SOCKETS_PATH) -I$(INCLUDE_PATH)  -lprotobuf -lglut -lstdc++
+FLAGS = -Wall -I$(ROBOPET_PATH) -I$(COMMUNICATION_H) -I$(SOCKETS_PATH) -I$(INCLUDE_PATH)  -lprotobuf -lglut -lGLU -lstdc++
 
 
 all: simulator
