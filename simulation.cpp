@@ -6,6 +6,9 @@ extern int playersTotal[TEAM_TOTAL];
 extern b2World* world;
 extern Ball ball;
 
+RoboPETServer simtotracker(PORT_SIM_TO_TRACKER, IP_SIM_TO_TRACKER);
+RoboPETClient radiotosim(PORT_RADIO_TO_SIM, IP_RADIO_TO_SIM);
+
 bool Robot::pointingToBall() {
 
 	//ball_vec is the vector from the bot center to the ball center
@@ -56,15 +59,14 @@ void process()
 	//iterate to move the bots
 	for (i = 0; i < TEAM_TOTAL; i++) {
 		for (j = 0; j < playersTotal[i]; j++) {
-
+			cout << i << "||" << j << endl;
 			bot_move = b2Vec2(robots[i][j].forces.getX(), robots[i][j].forces.getY());
 
-			robots[i][j].body->ApplyForce(bot_move, robots[i][j].body->GetWorldCenter());
 
+			robots[i][j].body->ApplyForce(bot_move, robots[i][j].body->GetWorldCenter());
 			//rotates the botRobot robots[TEAM_TOTAL][MAX_ROBOTS];
 			//bool SetTransform(const b2Vec2& position, float32 angle);
 			robots[i][j].body->SetTransform(robots[i][j].body->GetPosition(), robots[i][j].body->GetAngle()+robots[i][j].displacement_angle);
-
 
 			if(robots[i][j].closeToBall()) {
 
@@ -84,7 +86,6 @@ void process()
 					if(robots[i][j].doDrible){
 						Vector ball_force(	robots[i][j].body->GetPosition().x - ball.body->GetPosition().x,
 					   				  		robots[i][j].body->GetPosition().y - ball.body->GetPosition().y);
-
 						int dribleForce = 100/4;
 						ball_move = b2Vec2(ball_force.getX() * dribleForce, ball_force.getY() * dribleForce);
 						ball.body->ApplyForce(ball_move, ball.body->GetPosition());
@@ -101,7 +102,6 @@ void process()
 	float32 timeStep = 1.0f / 60.0f;
 	int32 velocityIterations = 10;
 	int32 positionIterations = 10;
-
 
 	// Instruct the world to perform a single step of simulation. It is
 	// generally best to keep the time step and iterations fixed.
@@ -273,11 +273,10 @@ void drawScene()
 			scrCount = 0;
 			clrscr();
 		}
-		rewindscr();
+		rewindscr();*/
 		receive();
-		*/
 		process();
-		//send();
+		send();
 
 }
 
@@ -299,4 +298,73 @@ void initGlut(int argc, char** argv)
 	glutKeyboardFunc(keyboardFunc);
 
 	glutMainLoop();
+}
+
+void receive()
+{
+	RoboPET_WrapperPacket packet;
+	if (radiotosim.receive(packet) && packet.has_radiotosim()) {
+		printf("----------------------------");
+		printf("Received Radio-To-SIM! --\n");
+
+		RadioToSim data = packet.radiotosim();
+
+		playersTotal[TEAM_BLUE] = data.yellow_robots_size();
+		playersTotal[TEAM_YELLOW] = data.blue_robots_size();
+
+		for(int i = 0; i < playersTotal[TEAM_YELLOW]; i++) {
+			robots[0][i].forces = Vector(data.yellow_robots(i).force_x(), data.yellow_robots(i).force_y());
+			robots[0][i].displacement_angle = data.yellow_robots(i).displacement_theta();
+			robots[0][i].doKick = data.yellow_robots(i).kick();
+			robots[0][i].doDrible = data.yellow_robots(i).drible();
+		}
+		for(int i = 0; i < playersTotal[TEAM_BLUE]; i++) {
+			robots[1][i].forces = Vector(data.blue_robots(i).force_x(), data.blue_robots(i).force_y());
+			robots[1][i].displacement_angle = data.blue_robots(i).displacement_theta();
+			robots[1][i].doKick = data.blue_robots(i).kick();
+			cout<<"kick="<<robots[0][0].doKick<<endl;
+			robots[1][i].doDrible = data.blue_robots(i).drible();
+		}
+	}
+}
+
+void send()
+{
+	RoboPET_WrapperPacket packet;
+
+	SimToTracker *simtotrackerPacket = packet.mutable_simtotracker();
+	SimToTracker::Ball *b = simtotrackerPacket->mutable_ball();
+
+	for(int team = 0; team < TEAM_TOTAL; team++)
+		for(int i = 0; i < playersTotal[team]; i++) {
+	 		SimToTracker::Robot *r =
+	 			(team == TEAM_BLUE ?
+	 				simtotrackerPacket->add_blue_robots() :
+	 				simtotrackerPacket->add_yellow_robots());
+
+	 		r->set_x( robots[team][i].body->GetPosition().x );
+	 		r->set_y( robots[team][i].body->GetPosition().y );
+	 		r->set_theta(0.0);
+	 }
+
+	 b->set_x( ball.body->GetPosition().x );
+	 b->set_y( ball.body->GetPosition().y );
+
+	 simtotracker.send(packet);
+
+	 printf("packet.robots_blue_size(): %5i --\n", simtotrackerPacket->blue_robots_size());
+	 printf("packet.robots_yellow_size(): %5i --\n", simtotrackerPacket->yellow_robots_size());
+
+	printf("Sent Sim-To-Tracker\n");
+}
+
+// Gambis
+
+void openradiotosim() {
+
+	radiotosim.open(false);
+}
+void opensimtotracker() {
+
+	simtotracker.open();
 }
