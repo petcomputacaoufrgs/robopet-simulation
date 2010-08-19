@@ -73,3 +73,9 @@ void drawScene();
 void initWorld();
 
 void initGlut(int argc, char** argv);
+
+
+// Gambis
+
+void openradiotosim();
+void opensimtotracker();
