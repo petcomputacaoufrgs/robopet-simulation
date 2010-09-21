@@ -1,10 +1,5 @@
 #include "simulation.h"
 
-Robot robots[TEAM_TOTAL][MAX_ROBOTS];
-Ball ball;
-int playersTotal[TEAM_TOTAL] = {MAX_ROBOTS, MAX_ROBOTS};
-b2World* world;
-
 int main(int argc, char** argv) {
 
 	initWorld();
@@ -12,17 +7,15 @@ int main(int argc, char** argv) {
 
 	printf("Simulator Running!\n");
 
-	//radiotosim.open(false);
-	openradiotosim();
+	openRadiotosim();
 
-	printf("Press <Enter> to open connection with client...\n");
-	getchar();
-	//simtotracker.open();
-	opensimtotracker();
+	printf("Press <Enter> to open connection with client...\n"); getchar();
 
-	initGlut(argc, argv);
+	openSimtotracker();
 
-	/*
+	initGlut(argc, argv); //open renderer
+
+	/* //this is the original main loop, without glut loop
 	clrscr();
 	int scrCount = 0;
 	while(1) {
