@@ -37,6 +37,7 @@ class Robot {
 		float displacement_angle;
 		bool doKick;
 		bool doDrible;
+		int id;
 
 		bool pointingToBall();
 		bool closeToBall();
@@ -77,5 +78,5 @@ void initGlut(int argc, char** argv);
 
 // Gambis
 
-void openradiotosim();
-void opensimtotracker();
+void openRadiotosim();
+void openSimtotracker();

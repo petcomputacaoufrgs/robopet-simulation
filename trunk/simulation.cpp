@@ -1,10 +1,10 @@
 #include "simulation.h"
 
 
-extern Robot robots[TEAM_TOTAL][MAX_ROBOTS];
-extern int playersTotal[TEAM_TOTAL];
-extern b2World* world;
-extern Ball ball;
+Robot robots[TEAM_TOTAL][MAX_ROBOTS];
+Ball ball;
+int playersTotal[TEAM_TOTAL] = {MAX_ROBOTS, MAX_ROBOTS};
+b2World* world;
 
 RoboPETServer simtotracker(PORT_SIM_TO_TRACKER, IP_SIM_TO_TRACKER);
 RoboPETClient radiotosim(PORT_RADIO_TO_SIM, IP_RADIO_TO_SIM);
@@ -59,7 +59,7 @@ void process()
 	//iterate to move the bots
 	for (i = 0; i < TEAM_TOTAL; i++) {
 		for (j = 0; j < playersTotal[i]; j++) {
-			cout << i << "||" << j << endl;
+			//cout << i << "||" << j << endl;
 			bot_move = b2Vec2(robots[i][j].forces.getX(), robots[i][j].forces.getY());
 
 
@@ -154,7 +154,7 @@ b2Body* newDynamicCircle(float x, float y, float radius, float density, float fr
 	fixtureDef.restitution = 0.8;
 	body->CreateFixture(&fixtureDef);
 
-	cout << "mass: " << body->GetMass()*100 << "kg" << endl;
+	cout << "calculated mass: " << body->GetMass()*100 << "kg" << endl;
 
     return body;
 }
@@ -305,26 +305,23 @@ void receive()
 	RoboPET_WrapperPacket packet;
 	if (radiotosim.receive(packet) && packet.has_radiotosim()) {
 		printf("----------------------------");
-		printf("Received Radio-To-SIM! --\n");
+		printf("Received Radio-To-SIM!\n");
 
 		RadioToSim data = packet.radiotosim();
 
-		playersTotal[TEAM_BLUE] = data.yellow_robots_size();
-		playersTotal[TEAM_YELLOW] = data.blue_robots_size();
+		playersTotal[data.team_id()] = data.robots_size();
 
-		for(int i = 0; i < playersTotal[TEAM_YELLOW]; i++) {
-			robots[0][i].forces = Vector(data.yellow_robots(i).force_x(), data.yellow_robots(i).force_y());
-			robots[0][i].displacement_angle = data.yellow_robots(i).displacement_theta();
-			robots[0][i].doKick = data.yellow_robots(i).kick();
-			robots[0][i].doDrible = data.yellow_robots(i).drible();
+		for(int i = 0; i < playersTotal[data.team_id()]; i++) {
+			robots[data.team_id()][i].forces = Vector(data.robots(i).force_x(), data.robots(i).force_y());
+			robots[data.team_id()][i].displacement_angle = data.robots(i).displacement_theta();
+			robots[data.team_id()][i].doKick = data.robots(i).kick();
+			robots[data.team_id()][i].doDrible = data.robots(i).drible();
+			robots[data.team_id()][i].id = data.robots(i).id();
 		}
-		for(int i = 0; i < playersTotal[TEAM_BLUE]; i++) {
-			robots[1][i].forces = Vector(data.blue_robots(i).force_x(), data.blue_robots(i).force_y());
-			robots[1][i].displacement_angle = data.blue_robots(i).displacement_theta();
-			robots[1][i].doKick = data.blue_robots(i).kick();
-			cout<<"kick="<<robots[0][0].doKick<<endl;
-			robots[1][i].doDrible = data.blue_robots(i).drible();
-		}
+		
+		printf("oi. recebi %i jogadores do time %i.\n",playersTotal[data.team_id()],data.team_id());
+		
+		
 	}
 }
 
@@ -345,6 +342,7 @@ void send()
 	 		r->set_x( robots[team][i].body->GetPosition().x );
 	 		r->set_y( robots[team][i].body->GetPosition().y );
 	 		r->set_theta(0.0);
+	 		r->set_id( robots[team][i].id );
 	 }
 
 	 b->set_x( ball.body->GetPosition().x );
@@ -352,19 +350,18 @@ void send()
 
 	 simtotracker.send(packet);
 
-	 printf("packet.robots_blue_size(): %5i --\n", simtotrackerPacket->blue_robots_size());
-	 printf("packet.robots_yellow_size(): %5i --\n", simtotrackerPacket->yellow_robots_size());
+	 //printf("packet.robots_blue_size() = %5i\n", simtotrackerPacket->blue_robots_size());
+	 //printf("packet.robots_yellow_size() = %5i\n", simtotrackerPacket->yellow_robots_size());
 
 	printf("Sent Sim-To-Tracker\n");
 }
 
-// Gambis
 
-void openradiotosim() {
+void openRadiotosim() {
 
 	radiotosim.open(false);
 }
-void opensimtotracker() {
+void openSimtotracker() {
 
 	simtotracker.open();
 }
