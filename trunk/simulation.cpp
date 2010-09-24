@@ -1,4 +1,5 @@
 #include "simulation.h"
+#include "math.h"
 
 
 Robot robots[TEAM_TOTAL][MAX_ROBOTS];
@@ -170,7 +171,7 @@ void initObjects()
 		for(int i = 0; i < playersTotal[team]; i++) {
 			robots[team][i].body = newDynamicCircle( //((i + 1) * CONSTANTE_POSICIONAMENTO_INICIAL + team * MAX_ROBOTS * CONSTANTE_POSICIONAMENTO_INICIAL),
 															  //((MAX_ROBOTS - i) * CONSTANTE_POSICIONAMENTO_INICIAL + team * MAX_ROBOTS * CONSTANTE_POSICIONAMENTO_INICIAL),
-															  0,0,
+															  100,100,
 															  ROBOT_R, ROBOT_DENSITY, 1, 0.5, 0.1, b2Color(1,0,0));
 		}
 
@@ -319,7 +320,7 @@ void receive()
 			robots[data.team_id()][i].id = data.robots(i).id();
 		}
 		
-		printf("oi. recebi %i jogadores do time %i.\n",playersTotal[data.team_id()],data.team_id());
+		//printf("oi. recebi %i jogadores do time %i.\n",playersTotal[data.team_id()],data.team_id());
 		
 		
 	}
@@ -341,7 +342,7 @@ void send()
 
 	 		r->set_x( robots[team][i].body->GetPosition().x );
 	 		r->set_y( robots[team][i].body->GetPosition().y );
-	 		r->set_theta(0.0);
+	 		r->set_theta( robots[team][i].body->GetAngle()*180/M_PI );
 	 		r->set_id( robots[team][i].id );
 	 }
 

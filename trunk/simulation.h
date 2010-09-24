@@ -18,8 +18,8 @@ using namespace std;
 #define K_TRESHOLD 3 //define o quão próximo o robô deve estar da bola para chutá-la
 
 //-------------
-#define WORLD_X 1000
-#define WORLD_Y 1000
+#define WORLD_X 5000
+#define WORLD_Y 5000
 
 #define ROBOT_R (ROBOT_RADIUS_MM)
 #define BALL_R (BALL_RADIUS_MM)
