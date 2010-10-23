@@ -32,12 +32,16 @@ using namespace std;
 class Robot {
 
 	public:
+		Robot() { isUpdated=false; };
+		~Robot() {};
+		
 		b2Body* body;
 		Vector forces;
 		float displacement_angle;
 		bool doKick;
 		bool doDrible;
 		int id;
+		bool isUpdated;
 
 		bool pointingToBall();
 		bool closeToBall();

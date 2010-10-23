@@ -305,8 +305,8 @@ void receive()
 {
 	RoboPET_WrapperPacket packet;
 	if (radiotosim.receive(packet) && packet.has_radiotosim()) {
-		printf("----------------------------");
-		printf("Received Radio-To-SIM!\n");
+		printf("----------------------------\n");
+		printf("Received Radio-To-SIM\n");
 
 		RadioToSim data = packet.radiotosim();
 
@@ -318,9 +318,10 @@ void receive()
 			robots[data.team_id()][i].doKick = data.robots(i).kick();
 			robots[data.team_id()][i].doDrible = data.robots(i).drible();
 			robots[data.team_id()][i].id = data.robots(i).id();
+			robots[data.team_id()][i].isUpdated = true;
+			
+			printf("RECEIVED Robot[%i]: forceVector<%lf,%lf> (%i degrees)\n",data.team_id(),data.robots(i).force_x(),data.robots(i).force_y(),data.robots(i).displacement_theta());
 		}
-		
-		//printf("oi. recebi %i jogadores do time %i.\n",playersTotal[data.team_id()],data.team_id());
 		
 		
 	}
@@ -329,21 +330,30 @@ void receive()
 void send()
 {
 	RoboPET_WrapperPacket packet;
+	
+	printf("----------------------------\n");
+	printf("Sendindg Sim-To-Tracker\n");
 
 	SimToTracker *simtotrackerPacket = packet.mutable_simtotracker();
 	SimToTracker::Ball *b = simtotrackerPacket->mutable_ball();
 
 	for(int team = 0; team < TEAM_TOTAL; team++)
 		for(int i = 0; i < playersTotal[team]; i++) {
-	 		SimToTracker::Robot *r =
-	 			(team == TEAM_BLUE ?
-	 				simtotrackerPacket->add_blue_robots() :
-	 				simtotrackerPacket->add_yellow_robots());
+	 		//if(robots[team][i].isUpdated) //will only send information of this robot if it's updated
+	 		{
+				SimToTracker::Robot *r =
+					(team == TEAM_BLUE ?
+						simtotrackerPacket->add_blue_robots() :
+						simtotrackerPacket->add_yellow_robots());
 
-	 		r->set_x( robots[team][i].body->GetPosition().x );
-	 		r->set_y( robots[team][i].body->GetPosition().y );
-	 		r->set_theta( robots[team][i].body->GetAngle()*180/M_PI );
-	 		r->set_id( robots[team][i].id );
+				r->set_x( robots[team][i].body->GetPosition().x );
+				r->set_y( robots[team][i].body->GetPosition().y );
+				r->set_theta( robots[team][i].body->GetAngle()*180/M_PI );
+				r->set_id( robots[team][i].id );
+				robots[team][i].isUpdated = false;
+				
+				printf("SENT Robot[%i]: <%lf,%lf> (%lf degrees)\n",robots[team][i].id,robots[team][i].body->GetPosition().x,robots[team][i].body->GetPosition().y,robots[team][i].body->GetAngle()*180/M_PI);
+			}
 	 }
 
 	 b->set_x( ball.body->GetPosition().x );
@@ -354,7 +364,7 @@ void send()
 	 //printf("packet.robots_blue_size() = %5i\n", simtotrackerPacket->blue_robots_size());
 	 //printf("packet.robots_yellow_size() = %5i\n", simtotrackerPacket->yellow_robots_size());
 
-	printf("Sent Sim-To-Tracker\n");
+	//printf("Sent Sim-To-Tracker\n");
 }
 
 
