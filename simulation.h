@@ -15,7 +15,9 @@ using namespace std;
 #define CONSTANTE_DESLOCAMENTO 0.01 //deve ser menor que 1 e maior que 0
 #define CONSTANTE_POSICIONAMENTO_INICIAL 100
 #define TRESHOLD 0.5
-#define K_TRESHOLD 3 //define o quão próximo o robô deve estar da bola para chutá-la
+#define K_TRESHOLD 3 //how close to the ball the bot should be to kick it
+#define KICKFORCE 10000
+#define DRIBBLEFORCE 25
 
 //-------------
 #define WORLD_X 5000
@@ -34,12 +36,12 @@ class Robot {
 	public:
 		Robot() { isUpdated=false; };
 		~Robot() {};
-		
+
 		b2Body* body;
 		Vector forces;
 		float displacement_angle;
 		bool doKick;
-		bool doDrible;
+		bool doDribble;
 		int id;
 		bool isUpdated;
 
@@ -49,8 +51,8 @@ class Robot {
 
 
 struct Ball {
-	b2Body*  body;
-	Vector   _forces;
+	b2Body* body;
+	Vector  _forces;
 };
 
 

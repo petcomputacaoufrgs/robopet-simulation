@@ -11,6 +11,7 @@ RoboPETServer simtotracker(PORT_SIM_TO_TRACKER, IP_SIM_TO_TRACKER);
 RoboPETClient radiotosim(PORT_RADIO_TO_SIM, IP_RADIO_TO_SIM);
 
 bool Robot::pointingToBall() {
+    //NOTE:both cmath and box2d computes trigonometric functions using angles in rad.
 
 	//ball_vec is the vector from the bot center to the ball center
 	RP::Vector ball_vec(ball.body->GetPosition().x - body->GetPosition().x,
@@ -25,10 +26,9 @@ bool Robot::pointingToBall() {
 	bot_vec.normalizeMe();
 	//ball_vec (dot_product) bot_vec = |bal_vec| * |bot_vec| * cos(theta)
 	//|bal_vec| == |bot_vec| == 1, because both are normalized
-	//if theta ~ 0, the bot points to the ball
+	//if theta ~ 0 (cos(theta) ~ 1), the bot points to the ball
 
-	if(1-TRESHOLD <= ball_vec.dotProduct(bot_vec) &&
-	   ball_vec.dotProduct(bot_vec) <= 1) {
+	if(1-TRESHOLD <= ball_vec.dotProduct(bot_vec)) {
 		return true;
 	}
 
@@ -60,41 +60,39 @@ void process()
 	//iterate to move the bots
 	for (i = 0; i < TEAM_TOTAL; i++) {
 		for (j = 0; j < playersTotal[i]; j++) {
-			//cout << i << "||" << j << endl;
+
+            //this is the vector of the bot[i][j] movement
 			bot_move = b2Vec2(robots[i][j].forces.getX(), robots[i][j].forces.getY());
-
-
 			robots[i][j].body->ApplyForce(bot_move, robots[i][j].body->GetWorldCenter());
-			//rotates the botRobot robots[TEAM_TOTAL][MAX_ROBOTS];
-			//bool SetTransform(const b2Vec2& position, float32 angle);
+
+			//rotates the botRobot
 			robots[i][j].body->SetTransform(robots[i][j].body->GetPosition(), robots[i][j].body->GetAngle()+robots[i][j].displacement_angle);
 
-			if(robots[i][j].closeToBall()) {
+            //Here we test if the bot is close to the ball and near it.
+            //If so, and it wants to kick or dribble, we do it!
+			if(robots[i][j].closeToBall() && robots[i][j].pointingToBall()) {
+				if(robots[i][j].doKick) {
+					//crazy values. We need to measure them afer
+					Vector ball_force(	ball.body->GetPosition().x - robots[i][j].body->GetPosition().x,
+				   				  		ball.body->GetPosition().y - robots[i][j].body->GetPosition().y);
 
-				//The bot needs to "point" to the ball to kick it
-				if(robots[i][j].pointingToBall()) {
+					ball_move = b2Vec2(ball_force.getX() * KICKFORCE, ball_force.getY() * KICKFORCE);
+					ball.body->ApplyForce(ball_move, ball.body->GetPosition());
+                    //we need to clear the kick command to let the bot kick again
+                    robots[i][j].doKick = 0;
+				}
 
-					if(robots[i][j].doKick) {
-						//crazy values. We need to measure them afer
-						Vector ball_force(	ball.body->GetPosition().x - robots[i][j].body->GetPosition().x,
-					   				  		ball.body->GetPosition().y - robots[i][j].body->GetPosition().y);
+                else if(robots[i][j].doDribble){
+					Vector ball_force(	robots[i][j].body->GetPosition().x - ball.body->GetPosition().x,
+				   				  		robots[i][j].body->GetPosition().y - ball.body->GetPosition().y);
 
-						int kickForce = 10000; //newtons*100
-						ball_move = b2Vec2(ball_force.getX() * kickForce, ball_force.getY() * kickForce);
-						ball.body->ApplyForce(ball_move, ball.body->GetPosition());
-						robots[i][j].doKick = 0;
-					}
-					if(robots[i][j].doDrible){
-						Vector ball_force(	robots[i][j].body->GetPosition().x - ball.body->GetPosition().x,
-					   				  		robots[i][j].body->GetPosition().y - ball.body->GetPosition().y);
-						int dribleForce = 100/4;
-						ball_move = b2Vec2(ball_force.getX() * dribleForce, ball_force.getY() * dribleForce);
-						ball.body->ApplyForce(ball_move, ball.body->GetPosition());
-					}
+					ball_move = b2Vec2(ball_force.getX() * DRIBBLEFORCE, ball_force.getY() * DRIBBLEFORCE);
+					ball.body->ApplyForce(ball_move, ball.body->GetPosition());
 				}
 			}
-			robots[i][j].doKick = 0;
 		}
+        //we need to clear the kick command to let the bot kick again
+		robots[i][j].doKick = 0;
 	}
 
 	// Prepare for simulation. Typically we use a time step of 1/60 of a
@@ -207,10 +205,9 @@ void keyboardFunc(unsigned char key, int xmouse, int ymouse)
 		}
 
 		if( key == 'k' ) {
-			robots[0][0].doDrible = !robots[0][0].doDrible;
-			cout<<"drible="<<robots[0][0].doDrible<<endl;
+			robots[0][0].doDribble = !robots[0][0].doDribble;
+			cout<<"dribble="<<robots[0][0].doDribble<<endl;
 		}
-		#include "Box2D.h"
 		if( key == 'j' ) {
 			robots[0][0].body->ApplyTorque( force );
 		}
@@ -316,21 +313,19 @@ void receive()
 			robots[data.team_id()][i].forces = Vector(data.robots(i).force_x(), data.robots(i).force_y());
 			robots[data.team_id()][i].displacement_angle = data.robots(i).displacement_theta();
 			robots[data.team_id()][i].doKick = data.robots(i).kick();
-			robots[data.team_id()][i].doDrible = data.robots(i).drible();
+			robots[data.team_id()][i].doDribble = data.robots(i).drible();
 			robots[data.team_id()][i].id = data.robots(i).id();
 			robots[data.team_id()][i].isUpdated = true;
-			
-			printf("RECEIVED Robot[%i]: forceVector<%lf,%lf> (%i degrees)\n",data.team_id(),data.robots(i).force_x(),data.robots(i).force_y(),data.robots(i).displacement_theta());
+
+			//printf("RECEIVED Robot[%i]: forceVector<%lf,%lf> (%i degrees)\n",data.team_id(),data.robots(i).force_x(),data.robots(i).force_y(),data.robots(i).displacement_theta());
 		}
-		
-		
 	}
 }
 
 void send()
 {
 	RoboPET_WrapperPacket packet;
-	
+
 	printf("----------------------------\n");
 	printf("Sendindg Sim-To-Tracker\n");
 
@@ -351,8 +346,8 @@ void send()
 				r->set_theta( robots[team][i].body->GetAngle()*180/M_PI );
 				r->set_id( robots[team][i].id );
 				robots[team][i].isUpdated = false;
-				
-				printf("SENT Robot[%i]: <%lf,%lf> (%lf degrees)\n",robots[team][i].id,robots[team][i].body->GetPosition().x,robots[team][i].body->GetPosition().y,robots[team][i].body->GetAngle()*180/M_PI);
+
+				//printf("SENT Robot[%i]: <%lf,%lf> (%lf degrees)\n",robots[team][i].id,robots[team][i].body->GetPosition().x,robots[team][i].body->GetPosition().y,robots[team][i].body->GetAngle()*180/M_PI);
 			}
 	 }
 
