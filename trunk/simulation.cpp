@@ -59,40 +59,40 @@ void process()
 
 	//iterate to move the bots
 	for (i = 0; i < TEAM_TOTAL; i++) {
-		for (j = 0; j < playersTotal[i]; j++) {
+			for (j = 0; j < playersTotal[i]; j++) {
 
-            //this is the vector of the bot[i][j] movement
-			bot_move = b2Vec2(robots[i][j].forces.getX(), robots[i][j].forces.getY());
-			robots[i][j].body->ApplyForce(bot_move, robots[i][j].body->GetWorldCenter());
+					//this is the vector of the bot[i][j] movement
+					bot_move = b2Vec2(robots[i][j].forces.getX(), robots[i][j].forces.getY());
+					robots[i][j].body->ApplyForce(bot_move, robots[i][j].body->GetWorldCenter());
 
-			//rotates the botRobot
-			robots[i][j].body->SetTransform(robots[i][j].body->GetPosition(), robots[i][j].body->GetAngle()+robots[i][j].displacement_angle);
+					//rotates the botRobot
+					robots[i][j].body->SetTransform(robots[i][j].body->GetPosition(), robots[i][j].body->GetAngle()+robots[i][j].displacement_angle);
+					//PROBLEM IS OVER THERE!!
+					//Here we test if the bot is close to the ball and near it.
+					//If so, and it wants to kick or dribble, we do it!
+					if(robots[i][j].closeToBall() && robots[i][j].pointingToBall()) {
+							if(robots[i][j].doKick) {
+									//crazy values. We need to measure them afer
+									Vector ball_force(	ball.body->GetPosition().x - robots[i][j].body->GetPosition().x,
+													ball.body->GetPosition().y - robots[i][j].body->GetPosition().y);
 
-            //Here we test if the bot is close to the ball and near it.
-            //If so, and it wants to kick or dribble, we do it!
-			if(robots[i][j].closeToBall() && robots[i][j].pointingToBall()) {
-				if(robots[i][j].doKick) {
-					//crazy values. We need to measure them afer
-					Vector ball_force(	ball.body->GetPosition().x - robots[i][j].body->GetPosition().x,
-				   				  		ball.body->GetPosition().y - robots[i][j].body->GetPosition().y);
+									ball_move = b2Vec2(ball_force.getX() * KICKFORCE, ball_force.getY() * KICKFORCE);
+									ball.body->ApplyForce(ball_move, ball.body->GetPosition());
+									//we need to clear the kick command to let the bot kick again
+									robots[i][j].doKick = 0;
+							}
 
-					ball_move = b2Vec2(ball_force.getX() * KICKFORCE, ball_force.getY() * KICKFORCE);
-					ball.body->ApplyForce(ball_move, ball.body->GetPosition());
-                    //we need to clear the kick command to let the bot kick again
-                    robots[i][j].doKick = 0;
-				}
+							else if(robots[i][j].doDribble){
+									Vector ball_force(	robots[i][j].body->GetPosition().x - ball.body->GetPosition().x,
+													robots[i][j].body->GetPosition().y - ball.body->GetPosition().y);
 
-                else if(robots[i][j].doDribble){
-					Vector ball_force(	robots[i][j].body->GetPosition().x - ball.body->GetPosition().x,
-				   				  		robots[i][j].body->GetPosition().y - ball.body->GetPosition().y);
-
-					ball_move = b2Vec2(ball_force.getX() * DRIBBLEFORCE, ball_force.getY() * DRIBBLEFORCE);
-					ball.body->ApplyForce(ball_move, ball.body->GetPosition());
-				}
+									ball_move = b2Vec2(ball_force.getX() * DRIBBLEFORCE, ball_force.getY() * DRIBBLEFORCE);
+									ball.body->ApplyForce(ball_move, ball.body->GetPosition());
+							}
+					}
 			}
-		}
-        //we need to clear the kick command to let the bot kick again
-		robots[i][j].doKick = 0;
+			//we need to clear the kick command to let the bot kick again
+			robots[i][j].doKick = 0;
 	}
 
 	// Prepare for simulation. Typically we use a time step of 1/60 of a
@@ -171,6 +171,7 @@ void initObjects()
 															  //((MAX_ROBOTS - i) * CONSTANTE_POSICIONAMENTO_INICIAL + team * MAX_ROBOTS * CONSTANTE_POSICIONAMENTO_INICIAL),
 															  100,100,
 															  ROBOT_R, ROBOT_DENSITY, 1, 0.5, 0.1, b2Color(1,0,0));
+			robots[team][i].id = i;
 		}
 
     ball.body = newDynamicCircle( 0, 0,BALL_R, BALL_DENSITY, 1, 0.9, 0.1, b2Color(1,0,0));
@@ -334,25 +335,21 @@ void send()
 
 	for(int team = 0; team < TEAM_TOTAL; team++)
 		for(int i = 0; i < playersTotal[team]; i++) {
-	 		//if(robots[team][i].isUpdated) //will only send information of this robot if it's updated
-	 		{
 				SimToTracker::Robot *r =
 					(team == TEAM_BLUE ?
 						simtotrackerPacket->add_blue_robots() :
 						simtotrackerPacket->add_yellow_robots());
 
-				r->set_x( robots[team][i].body->GetPosition().x );
-				r->set_y( robots[team][i].body->GetPosition().y );
-				r->set_theta( robots[team][i].body->GetAngle()*180/M_PI );
+				r->set_x( (int)(robots[team][i].body->GetPosition().x) );
+				r->set_y( (int)(robots[team][i].body->GetPosition().y) );
+				r->set_theta( 0 );
 				r->set_id( robots[team][i].id );
-				robots[team][i].isUpdated = false;
 
-				//printf("SENT Robot[%i]: <%lf,%lf> (%lf degrees)\n",robots[team][i].id,robots[team][i].body->GetPosition().x,robots[team][i].body->GetPosition().y,robots[team][i].body->GetAngle()*180/M_PI);
-			}
-	 }
+				printf("SENT Robot[%i]: <%lf,%lf> (%lf degrees)\n",robots[team][i].id,robots[team][i].body->GetPosition().x,robots[team][i].body->GetPosition().y,(int)robots[team][i].body->GetAngle()*180/M_PI);
+		}
 
-	 b->set_x( ball.body->GetPosition().x );
-	 b->set_y( ball.body->GetPosition().y );
+	 b->set_x( (int)(ball.body->GetPosition().x) );
+	 b->set_y( (int)(ball.body->GetPosition().y) );
 
 	 simtotracker.send(packet);
 
