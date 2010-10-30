@@ -40,8 +40,8 @@ class Robot {
 		b2Body* body;
 		Vector forces;
 		float displacement_angle;
-		bool doKick;
-		bool doDribble;
+		int doKick;
+		int doDribble;
 		int id;
 		bool isUpdated;
 
