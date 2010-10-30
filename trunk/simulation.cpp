@@ -67,6 +67,7 @@ void process()
 
 					//rotates the botRobot
 					robots[i][j].body->SetTransform(robots[i][j].body->GetPosition(), robots[i][j].body->GetAngle()+robots[i][j].displacement_angle);
+
 					//PROBLEM IS OVER THERE!!
 					//Here we test if the bot is close to the ball and near it.
 					//If so, and it wants to kick or dribble, we do it!
@@ -91,8 +92,7 @@ void process()
 							}
 					}
 			}
-			//we need to clear the kick command to let the bot kick again
-			robots[i][j].doKick = 0;
+
 	}
 
 	// Prepare for simulation. Typically we use a time step of 1/60 of a
