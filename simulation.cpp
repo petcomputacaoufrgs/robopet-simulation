@@ -4,7 +4,7 @@
 
 Robot robots[TEAM_TOTAL][MAX_ROBOTS];
 Ball ball;
-int playersTotal[TEAM_TOTAL] = {MAX_ROBOTS, MAX_ROBOTS};
+int playersTotal[TEAM_TOTAL] = {2, 0};
 b2World* world;
 
 RoboPETServer simtotracker(PORT_SIM_TO_TRACKER, IP_SIM_TO_TRACKER);
@@ -56,14 +56,17 @@ void process()
 	b2Vec2 bot_move;
 	b2Vec2 ball_move;
 	int i, j;
+	
+	float force = 999999999;
 
 	//iterate to move the bots
 	for (i = 0; i < TEAM_TOTAL; i++) {
 			for (j = 0; j < playersTotal[i]; j++) {
 
 					//this is the vector of the bot[i][j] movement
-					bot_move = b2Vec2(robots[i][j].forces.getX(), robots[i][j].forces.getY());
+					bot_move = b2Vec2(force*robots[i][j].forces.getX(), force*robots[i][j].forces.getY());
 					robots[i][j].body->ApplyForce(bot_move, robots[i][j].body->GetWorldCenter());
+					printf("APPLIED FORCE: robot %i - <%f,%f>\n",j,bot_move.x,bot_move.y);
 
 					//rotates the botRobot
 					robots[i][j].body->SetTransform(robots[i][j].body->GetPosition(), robots[i][j].body->GetAngle()+robots[i][j].displacement_angle);
@@ -169,12 +172,12 @@ void initObjects()
 		for(int i = 0; i < playersTotal[team]; i++) {
 			robots[team][i].body = newDynamicCircle( //((i + 1) * CONSTANTE_POSICIONAMENTO_INICIAL + team * MAX_ROBOTS * CONSTANTE_POSICIONAMENTO_INICIAL),
 															  //((MAX_ROBOTS - i) * CONSTANTE_POSICIONAMENTO_INICIAL + team * MAX_ROBOTS * CONSTANTE_POSICIONAMENTO_INICIAL),
-															  100,100,
+															  rand()%WORLD_X,rand()%WORLD_Y,
 															  ROBOT_R, ROBOT_DENSITY, 1, 0.5, 0.1, b2Color(1,0,0));
 			robots[team][i].id = i;
 		}
 
-    ball.body = newDynamicCircle( 0, 0,BALL_R, BALL_DENSITY, 1, 0.9, 0.1, b2Color(1,0,0));
+    ball.body = newDynamicCircle( WORLD_X/2, WORLD_Y/2,BALL_R, BALL_DENSITY, 1, 0.9, 0.1, b2Color(1,0,0));
 }
 
 void keyboardFunc(unsigned char key, int xmouse, int ymouse)
@@ -308,27 +311,30 @@ void receive()
 
 		RadioToSim data = packet.radiotosim();
 
-		playersTotal[data.team_id()] = data.robots_size();
+		//playersTotal[data.team_id()] = data.robots_size();
 
-		for(int i = 0; i < playersTotal[data.team_id()]; i++) {
+		for(int i = 0; i < data.robots_size(); i++) {
+			
 			robots[data.team_id()][i].forces = Vector(data.robots(i).force_x(), data.robots(i).force_y());
+			robots[data.team_id()][i].forces.rotate(-90);
 			robots[data.team_id()][i].displacement_angle = data.robots(i).displacement_theta();
 			robots[data.team_id()][i].doKick = data.robots(i).kick();
 			robots[data.team_id()][i].doDribble = data.robots(i).drible();
 			robots[data.team_id()][i].id = data.robots(i).id();
 			robots[data.team_id()][i].isUpdated = true;
 
-			//printf("RECEIVED Robot[%i]: forceVector<%lf,%lf> (%i degrees)\n",data.team_id(),data.robots(i).force_x(),data.robots(i).force_y(),data.robots(i).displacement_theta());
+			printf("RECEIVED Robot[%i]: forceVector<%lf,%lf> (%i degrees)\n",data.team_id(),data.robots(i).force_x(),data.robots(i).force_y(),data.robots(i).displacement_theta());
 		}
 	}
 }
 
 void send()
 {
+	bool verbose = false;
 	RoboPET_WrapperPacket packet;
 
-	printf("----------------------------\n");
-	printf("Sendindg Sim-To-Tracker\n");
+	if(verbose) printf("----------------------------\n");
+	if(verbose) printf("Sendindg Sim-To-Tracker\n");
 
 	SimToTracker *simtotrackerPacket = packet.mutable_simtotracker();
 	SimToTracker::Ball *b = simtotrackerPacket->mutable_ball();
@@ -345,7 +351,7 @@ void send()
 				r->set_theta( 0 );
 				r->set_id( robots[team][i].id );
 
-				printf("SENT Robot[%i]: <%lf,%lf> (%lf degrees)\n",robots[team][i].id,robots[team][i].body->GetPosition().x,robots[team][i].body->GetPosition().y,(int)robots[team][i].body->GetAngle()*180/M_PI);
+				if(verbose) printf("SENT Robot[%i]: <%lf,%lf> (%lf degrees)\n",robots[team][i].id,robots[team][i].body->GetPosition().x,robots[team][i].body->GetPosition().y,(int)robots[team][i].body->GetAngle()*180/M_PI);
 		}
 
 	 b->set_x( (int)(ball.body->GetPosition().x) );
