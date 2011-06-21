@@ -20,14 +20,14 @@ using namespace std;
 #define DRIBBLEFORCE 25
 
 //-------------
-#define WORLD_X 5000
-#define WORLD_Y 5000
+#define WORLD_X 6000
+#define WORLD_Y 4000
 
 #define ROBOT_R (ROBOT_RADIUS_MM)
 #define BALL_R (BALL_RADIUS_MM)
 
-#define ROBOT_DENSITY 5
-#define BALL_DENSITY 0.2
+#define ROBOT_DENSITY 0.00001
+#define BALL_DENSITY 0.00002
 
 //-------------
 
