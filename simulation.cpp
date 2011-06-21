@@ -65,6 +65,7 @@ void process()
 
 					//this is the vector of the bot[i][j] movement
 					bot_move = b2Vec2(force*robots[i][j].forces.getX(), force*robots[i][j].forces.getY());
+					//robots[i][j].body->ApplyImpulse(bot_move, robots[i][j].body->GetWorldCenter());
 					robots[i][j].body->ApplyForce(bot_move, robots[i][j].body->GetWorldCenter());
 					printf("APPLIED FORCE: robot %i - <%f,%f>\n",j,bot_move.x,bot_move.y);
 
@@ -163,17 +164,17 @@ b2Body* newDynamicCircle(float x, float y, float radius, float density, float fr
 
 void initObjects()
 {
-	newWall(0,WORLD_Y, WORLD_X,1); 	// top wall
-	newWall(0,-WORLD_Y, WORLD_X,1); // bottom wall
-	newWall(WORLD_X,0, 1,WORLD_Y); 	// right wall
-	newWall(-WORLD_X,0, 1,WORLD_Y); // left wall
+	newWall(0,WORLD_Y+1, WORLD_X,1); 	// top wall
+	newWall(0,-1, WORLD_X,1); // bottom wall
+	newWall(WORLD_X+1,0, 1,WORLD_Y); 	// right wall
+	newWall(-1,0, 1,WORLD_Y); // left wall
 
 	for(int team = 0; team < TEAM_TOTAL; team++)
 		for(int i = 0; i < playersTotal[team]; i++) {
 			robots[team][i].body = newDynamicCircle( //((i + 1) * CONSTANTE_POSICIONAMENTO_INICIAL + team * MAX_ROBOTS * CONSTANTE_POSICIONAMENTO_INICIAL),
 															  //((MAX_ROBOTS - i) * CONSTANTE_POSICIONAMENTO_INICIAL + team * MAX_ROBOTS * CONSTANTE_POSICIONAMENTO_INICIAL),
 															  rand()%WORLD_X,rand()%WORLD_Y,
-															  ROBOT_R, ROBOT_DENSITY, 1, 0.5, 0.1, b2Color(1,0,0));
+															  ROBOT_R, ROBOT_DENSITY, 1, 0.01, 0.1, b2Color(1,0,0));
 			robots[team][i].id = i;
 		}
 
@@ -183,7 +184,7 @@ void initObjects()
 void keyboardFunc(unsigned char key, int xmouse, int ymouse)
 {
 		b2Vec2 fv;
-		int force = 100000000/5; // Newtons*100
+		float force = 99999999; // Newtons*100
 
         if( key == 'a' ) {
 			fv = b2Vec2(-force,0);
@@ -201,6 +202,7 @@ void keyboardFunc(unsigned char key, int xmouse, int ymouse)
             fv = b2Vec2(0,force);
         }
 
+		//robots[0][0].body->ApplyImpulse(fv,robots[0][0].body->GetWorldCenter());
 		robots[0][0].body->ApplyForce(fv,robots[0][0].body->GetWorldCenter());
 
 		if( key == 'i' ) {
@@ -224,9 +226,9 @@ void keyboardFunc(unsigned char key, int xmouse, int ymouse)
 void drawScene()
 {
 	glMatrixMode (GL_PROJECTION);
-	glViewport(0,0, 500,500);
+	glViewport(0,0, WORLD_X/10,WORLD_Y/10);
 	glLoadIdentity ();
-	gluOrtho2D(-WORLD_X, WORLD_X, -WORLD_Y, WORLD_Y);
+	gluOrtho2D(0, WORLD_X, 0, WORLD_Y);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity ();
 
@@ -292,7 +294,7 @@ void initGlut(int argc, char** argv)
 {
 	glutInit (&argc, argv);
     glutInitDisplayMode ( GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA );
-    glutInitWindowSize (500,500);
+    glutInitWindowSize (WORLD_X/10,WORLD_Y/10);
     glutInitWindowPosition (500, 500);
     glutCreateWindow("RoboPET Simulator - controls: WASD, IJKL");
 
