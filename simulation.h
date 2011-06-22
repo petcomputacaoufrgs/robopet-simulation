@@ -11,23 +11,8 @@ using namespace std;
 
 #define drawLine(x1,y1,x2,y2) glBegin(GL_LINES); glVertex2f ((x1),(y1)); glVertex2f ((x2),(y2)); glEnd();
 
-#define MAX_ROBOTS 5
-#define CONSTANTE_DESLOCAMENTO 0.01 //deve ser menor que 1 e maior que 0
-#define CONSTANTE_POSICIONAMENTO_INICIAL 100
-#define TRESHOLD 0.5
-#define K_TRESHOLD 3 //how close to the ball the bot should be to kick it
-#define KICKFORCE 10000
-#define DRIBBLEFORCE 25
-
-//-------------
-#define WORLD_X 6000
-#define WORLD_Y 4000
-
-#define ROBOT_R (ROBOT_RADIUS_MM)
-#define BALL_R (BALL_RADIUS_MM)
-
-#define ROBOT_DENSITY 0.00001
-#define BALL_DENSITY 0.00002
+#define MM_TO_M(x) (x/100.)
+#define M_TO_MM(x) (100.*x)
 
 //-------------
 
