@@ -2,6 +2,32 @@
 #include "math.h"
 
 
+////////////////////////////////////////////////////////////////////////
+
+#define MAX_ROBOTS 5
+#define MAX_ROBOTS 5
+#define K_TRESHOLD 3 //how close to the ball the bot should be to kick it
+#define KICKFORCE 5000
+#define DRIBBLEFORCE 5
+
+//-------------
+
+#define ROBOT_R MM_TO_M(ROBOT_RADIUS_MM)
+#define BALL_R MM_TO_M(BALL_RADIUS_MM)
+
+#define ROBOT_DENSITY 0.02
+#define BALL_DENSITY 0.01
+
+//-------------
+
+#define WORLD_X MM_TO_M(6000)
+#define WORLD_Y MM_TO_M(4000)
+
+#define WINDOW_X 600
+#define WINDOW_Y 400
+
+////////////////////////////////////////////////////////////////////////
+
 Robot robots[TEAM_TOTAL][MAX_ROBOTS];
 Ball ball;
 int playersTotal[TEAM_TOTAL] = {2, 0};
@@ -9,6 +35,10 @@ b2World* world;
 
 RoboPETServer simtotracker(PORT_SIM_TO_TRACKER, IP_SIM_TO_TRACKER);
 RoboPETClient radiotosim(PORT_RADIO_TO_SIM, IP_RADIO_TO_SIM);
+
+////////////////////////////////////////////////////////////////////////
+
+
 
 bool Robot::pointingToBall() {
     //NOTE:both cmath and box2d computes trigonometric functions using angles in rad.
@@ -57,7 +87,7 @@ void process()
 	b2Vec2 ball_move;
 	int i, j;
 	
-	float force = 999999999;
+	float force = 10;
 
 	//iterate to move the bots
 	for (i = 0; i < TEAM_TOTAL; i++) {
@@ -65,38 +95,36 @@ void process()
 
 					//this is the vector of the bot[i][j] movement
 					bot_move = b2Vec2(force*robots[i][j].forces.getX(), force*robots[i][j].forces.getY());
-					//robots[i][j].body->ApplyImpulse(bot_move, robots[i][j].body->GetWorldCenter());
 					robots[i][j].body->ApplyForce(bot_move, robots[i][j].body->GetWorldCenter());
-					printf("APPLIED FORCE: robot %i - <%f,%f>\n",j,bot_move.x,bot_move.y);
+					
+					printf("APPLIED FORCE: robot %i - <%f, %f>\n",j, bot_move.x,bot_move.y);
+					printf("VELOCIDADE: robot %i - <%f, %f>\n", j, robots[i][j].body->GetLinearVelocityFromWorldPoint(b2Vec2(0,0)).x, robots[i][j].body->GetLinearVelocityFromWorldPoint(b2Vec2(0,0)).y);
 
 					//rotates the botRobot
 					robots[i][j].body->SetTransform(robots[i][j].body->GetPosition(), robots[i][j].body->GetAngle()+robots[i][j].displacement_angle);
 
-					//PROBLEM IS OVER THERE!!
 					//Here we test if the bot is close to the ball and near it.
 					//If so, and it wants to kick or dribble, we do it!
 					if(robots[i][j].closeToBall() && robots[i][j].pointingToBall()) {
 							if(robots[i][j].doKick) {
 									//crazy values. We need to measure them afer
 									Vector ball_force(	ball.body->GetPosition().x - robots[i][j].body->GetPosition().x,
-													ball.body->GetPosition().y - robots[i][j].body->GetPosition().y);
+													    ball.body->GetPosition().y - robots[i][j].body->GetPosition().y);
 
 									ball_move = b2Vec2(ball_force.getX() * KICKFORCE, ball_force.getY() * KICKFORCE);
 									ball.body->ApplyForce(ball_move, ball.body->GetPosition());
 									//we need to clear the kick command to let the bot kick again
 									robots[i][j].doKick = 0;
 							}
-
 							else if(robots[i][j].doDribble){
-									Vector ball_force(	robots[i][j].body->GetPosition().x - ball.body->GetPosition().x,
-													robots[i][j].body->GetPosition().y - ball.body->GetPosition().y);
+									Vector ball_force(robots[i][j].body->GetPosition().x - ball.body->GetPosition().x,
+													  robots[i][j].body->GetPosition().y - ball.body->GetPosition().y);
 
 									ball_move = b2Vec2(ball_force.getX() * DRIBBLEFORCE, ball_force.getY() * DRIBBLEFORCE);
 									ball.body->ApplyForce(ball_move, ball.body->GetPosition());
 							}
 					}
 			}
-
 	}
 
 	// Prepare for simulation. Typically we use a time step of 1/60 of a
@@ -112,7 +140,7 @@ void process()
 
 	// Clear applied body forces. We didn't apply any forces, but you
 	// should know about this function.
-	world->ClearForces();
+	//world->ClearForces();
 }
 
 b2Body* newWall(float x, float y, float sizex, float sizey)
@@ -168,30 +196,31 @@ void initObjects()
 	newWall(0,-1, WORLD_X,1); // bottom wall
 	newWall(WORLD_X+1,0, 1,WORLD_Y); 	// right wall
 	newWall(-1,0, 1,WORLD_Y); // left wall
+	
+	// newDynamicCircle(x, y, radius, density, friction, restitution, damping, color)
 
 	for(int team = 0; team < TEAM_TOTAL; team++)
 		for(int i = 0; i < playersTotal[team]; i++) {
-			robots[team][i].body = newDynamicCircle( //((i + 1) * CONSTANTE_POSICIONAMENTO_INICIAL + team * MAX_ROBOTS * CONSTANTE_POSICIONAMENTO_INICIAL),
-															  //((MAX_ROBOTS - i) * CONSTANTE_POSICIONAMENTO_INICIAL + team * MAX_ROBOTS * CONSTANTE_POSICIONAMENTO_INICIAL),
-															  rand()%WORLD_X,rand()%WORLD_Y,
-															  ROBOT_R, ROBOT_DENSITY, 1, 0.01, 0.1, b2Color(1,0,0));
+			robots[team][i].body = newDynamicCircle(rand()%(int)WORLD_X,
+													rand()%(int)WORLD_Y,
+													ROBOT_R, ROBOT_DENSITY, 0.1, 0.01, 10, b2Color(1,0,0));
 			robots[team][i].id = i;
 		}
 
-    ball.body = newDynamicCircle( WORLD_X/2, WORLD_Y/2,BALL_R, BALL_DENSITY, 1, 0.9, 0.1, b2Color(1,0,0));
+    ball.body = newDynamicCircle( WORLD_X/2, WORLD_Y/2,BALL_R, BALL_DENSITY, 0.1, 0.01, 0.5, b2Color(1,0,0));
 }
 
 void keyboardFunc(unsigned char key, int xmouse, int ymouse)
 {
 		b2Vec2 fv;
-		float force = 99999999; // Newtons*100
+		float force = 1; // Newtons*100
 
         if( key == 'a' ) {
 			fv = b2Vec2(-force,0);
         }
 
         if( key == 'd' ) {
-	        fv = b2Vec2(force,0);
+			fv = b2Vec2(force,0);
         }
 
         if( key == 's' ) {
@@ -202,38 +231,42 @@ void keyboardFunc(unsigned char key, int xmouse, int ymouse)
             fv = b2Vec2(0,force);
         }
 
-		//robots[0][0].body->ApplyImpulse(fv,robots[0][0].body->GetWorldCenter());
-		robots[0][0].body->ApplyForce(fv,robots[0][0].body->GetWorldCenter());
+		ball.body->ApplyForce(fv,ball.body->GetWorldCenter());
 
+		/*robots[0][0].body->ApplyForce(fv,robots[0][0].body->GetWorldCenter());
+		
 		if( key == 'i' ) {
-			robots[0][0].doKick = 1;
-			cout<<"kick="<<robots[0][0].doKick<<endl;
+				robots[0][0].doKick = 1;
+				cout<<"kick="<<robots[0][0].doKick<<endl;
 		}
 
 		if( key == 'k' ) {
-			robots[0][0].doDribble = !robots[0][0].doDribble;
-			cout<<"dribble="<<robots[0][0].doDribble<<endl;
+				robots[0][0].doDribble = !robots[0][0].doDribble;
+				cout<<"dribble="<<robots[0][0].doDribble<<endl;
 		}
 		if( key == 'j' ) {
-			robots[0][0].body->ApplyTorque( force );
+				robots[0][0].body->ApplyTorque( force );
 		}
 
 		if( key == 'l' ) {
-			robots[0][0].body->ApplyTorque( -force );
-		}
+				robots[0][0].body->ApplyTorque( -force );
+		}*/
+
+		
 }
 
 void drawScene()
 {
+	float arad;
+	
 	glMatrixMode (GL_PROJECTION);
-	glViewport(0,0, WORLD_X/10,WORLD_Y/10);
-	glLoadIdentity ();
-	gluOrtho2D(0, WORLD_X, 0, WORLD_Y);
+	glViewport(0,0, WINDOW_X,WINDOW_Y);
+    glLoadIdentity ();
+    gluOrtho2D(0, WORLD_X, 0, WORLD_Y);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity ();
 
 	glClear(GL_COLOR_BUFFER_BIT);
-
 
 	// draw players
     for(int team = 0; team < TEAM_TOTAL; team++)
@@ -242,7 +275,7 @@ void drawScene()
 			b2Vec2 position = robots[team][i].body->GetPosition();
 			float angle = robots[team][i].body->GetAngle();
 
-			float arad;
+			arad = 0.0;
 			glBegin(GL_LINE_LOOP);
 				for(float ang = 0; ang < 360; ang+=10)
 				{
@@ -255,7 +288,7 @@ void drawScene()
 		}
 
 	// draw ball
-	float arad;
+	arad = 0.0;
 	glBegin(GL_LINE_LOOP);
 		for(float ang = 0; ang < 360; ang+=10)
 		{
@@ -294,8 +327,7 @@ void initGlut(int argc, char** argv)
 {
 	glutInit (&argc, argv);
     glutInitDisplayMode ( GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA );
-    glutInitWindowSize (WORLD_X/10,WORLD_Y/10);
-    glutInitWindowPosition (500, 500);
+    glutInitWindowSize (WINDOW_X,WINDOW_Y);
     glutCreateWindow("RoboPET Simulator - controls: WASD, IJKL");
 
 	glutIdleFunc (drawScene);
@@ -332,7 +364,7 @@ void receive()
 
 void send()
 {
-	bool verbose = false;
+	bool verbose = true;
 	RoboPET_WrapperPacket packet;
 
 	if(verbose) printf("----------------------------\n");
@@ -348,16 +380,16 @@ void send()
 						simtotrackerPacket->add_blue_robots() :
 						simtotrackerPacket->add_yellow_robots());
 
-				r->set_x( (int)(robots[team][i].body->GetPosition().x) );
-				r->set_y( (int)(robots[team][i].body->GetPosition().y) );
+				r->set_x( (int)M_TO_MM((robots[team][i].body->GetPosition().x)) );
+				r->set_y( (int)M_TO_MM((robots[team][i].body->GetPosition().y)) );
 				r->set_theta( 0 );
 				r->set_id( robots[team][i].id );
 
 				if(verbose) printf("SENT Robot[%i]: <%lf,%lf> (%lf degrees)\n",robots[team][i].id,robots[team][i].body->GetPosition().x,robots[team][i].body->GetPosition().y,(int)robots[team][i].body->GetAngle()*180/M_PI);
 		}
 
-	 b->set_x( (int)(ball.body->GetPosition().x) );
-	 b->set_y( (int)(ball.body->GetPosition().y) );
+	 b->set_x( (int)M_TO_MM((ball.body->GetPosition().x)) );
+	 b->set_y( (int)M_TO_MM((ball.body->GetPosition().y)) );
 
 	 simtotracker.send(packet);
 
@@ -366,7 +398,6 @@ void send()
 
 	//printf("Sent Sim-To-Tracker\n");
 }
-
 
 void openRadiotosim() {
 
