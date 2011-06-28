@@ -230,6 +230,11 @@ void keyboardFunc(unsigned char key, int xmouse, int ymouse)
         if( key == 'w' ) {
             fv = b2Vec2(0,force);
         }
+        
+        if( key == 'r' ) {
+            fv = b2Vec2(0,force);
+            ball.body = newDynamicCircle( WORLD_X/2, WORLD_Y/2,BALL_R, BALL_DENSITY, 0.1, 0.01, 0.5, b2Color(1,0,0));
+        }
 
 		ball.body->ApplyForce(fv,ball.body->GetWorldCenter());
 
