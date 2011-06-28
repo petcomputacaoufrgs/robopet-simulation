@@ -7,8 +7,8 @@
 #define MAX_ROBOTS 5
 #define MAX_ROBOTS 5
 #define K_TRESHOLD 3 //how close to the ball the bot should be to kick it
-#define KICKFORCE 5000
-#define DRIBBLEFORCE 5
+#define KICKFORCE 50 //how strong it should be?
+#define DRIBBLEFORCE 5 
 
 //-------------
 
@@ -20,8 +20,8 @@
 
 //-------------
 
-#define WORLD_X MM_TO_M(6000)
-#define WORLD_Y MM_TO_M(4000)
+#define WORLD_X MM_TO_M(FIELD_WIDTH)
+#define WORLD_Y MM_TO_M(FIELD_HEIGHT)
 
 #define WINDOW_X 600
 #define WINDOW_Y 400
@@ -132,7 +132,7 @@ void process()
 	// in most game scenarios.
 	float32 timeStep = 1.0f / 60.0f;
 	int32 velocityIterations = 10;
-	int32 positionIterations = 10;
+	int positionIterations = 10;
 
 	// Instruct the world to perform a single step of simulation. It is
 	// generally best to keep the time step and iterations fixed.
@@ -159,11 +159,10 @@ b2Body* newWall(float x, float y, float sizex, float sizey)
 	fixtureDef.restitution = 0.8;
 	body->CreateFixture(&fixtureDef);
 
-
 	return body;
 }
 
-b2Body* newDynamicCircle(float x, float y, float radius, float density, float friction, float restitution, float damping, b2Color color)
+b2Body* newDynamicCircle(float x, float y, float radius, float density, float friction, float restitution, float damping)
 {
 	b2Vec2 pos(x,y);
 	b2BodyDef bodyDef;
@@ -182,7 +181,7 @@ b2Body* newDynamicCircle(float x, float y, float radius, float density, float fr
 	fixtureDef.shape = &circle;
 	fixtureDef.friction = friction;
 	fixtureDef.density = density;
-	fixtureDef.restitution = 0.8;
+	fixtureDef.restitution = restitution;
 	body->CreateFixture(&fixtureDef);
 
 	cout << "calculated mass: " << body->GetMass()*100 << "kg" << endl;
@@ -193,21 +192,21 @@ b2Body* newDynamicCircle(float x, float y, float radius, float density, float fr
 void initObjects()
 {
 	newWall(0,WORLD_Y+1, WORLD_X,1); 	// top wall
-	newWall(0,-1, WORLD_X,1); // bottom wall
+	newWall(0,-1, WORLD_X,1); 			// bottom wall
 	newWall(WORLD_X+1,0, 1,WORLD_Y); 	// right wall
-	newWall(-1,0, 1,WORLD_Y); // left wall
+	newWall(-1, 0, 1, WORLD_Y); 	    // left wall
 	
-	// newDynamicCircle(x, y, radius, density, friction, restitution, damping, color)
+	// newDynamicCircle(x, y, radius, density, friction, restitution, damping)
 
 	for(int team = 0; team < TEAM_TOTAL; team++)
 		for(int i = 0; i < playersTotal[team]; i++) {
 			robots[team][i].body = newDynamicCircle(rand()%(int)WORLD_X,
 													rand()%(int)WORLD_Y,
-													ROBOT_R, ROBOT_DENSITY, 0.1, 0.01, 10, b2Color(1,0,0));
+													ROBOT_R, ROBOT_DENSITY, 0.1, 0.01, 10);
 			robots[team][i].id = i;
 		}
 
-    ball.body = newDynamicCircle( WORLD_X/2, WORLD_Y/2,BALL_R, BALL_DENSITY, 0.1, 0.01, 0.5, b2Color(1,0,0));
+    ball.body = newDynamicCircle( WORLD_X/2, WORLD_Y/2,BALL_R, BALL_DENSITY, 0.1, 0.01, 0.5);
 }
 
 void keyboardFunc(unsigned char key, int xmouse, int ymouse)
@@ -233,7 +232,7 @@ void keyboardFunc(unsigned char key, int xmouse, int ymouse)
         
         if( key == 'r' ) {
             fv = b2Vec2(0,0);
-            ball.body = newDynamicCircle( WORLD_X/2, WORLD_Y/2,BALL_R, BALL_DENSITY, 0.1, 0.01, 0.5, b2Color(1,0,0));
+            ball.body = newDynamicCircle( WORLD_X/2, WORLD_Y/2,BALL_R, BALL_DENSITY, 0.1, 0.01, 0.5);
         }
 
 		ball.body->ApplyForce(fv,ball.body->GetWorldCenter());
