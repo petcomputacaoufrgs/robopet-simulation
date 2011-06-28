@@ -202,16 +202,16 @@ void initObjects()
 		for(int i = 0; i < playersTotal[team]; i++) {
 			robots[team][i].body = newDynamicCircle(rand()%(int)WORLD_X,
 													rand()%(int)WORLD_Y,
-													ROBOT_R, ROBOT_DENSITY, 0.1, 0.01, 10);
+													ROBOT_R, ROBOT_DENSITY, 0.1, 0.4, 10);
 			robots[team][i].id = i;
 		}
 
-    ball.body = newDynamicCircle( WORLD_X/2, WORLD_Y/2,BALL_R, BALL_DENSITY, 0.1, 0.01, 0.5);
+    ball.body = newDynamicCircle( WORLD_X/2, WORLD_Y/2,BALL_R, BALL_DENSITY, 0.1, 1, 0.5);
 }
 
 void keyboardFunc(unsigned char key, int xmouse, int ymouse)
 {
-		b2Vec2 fv;
+		b2Vec2 fv=b2Vec2(0,0);
 		float force = 1; // Newtons*100
 
         if( key == 'a' ) {
@@ -231,8 +231,8 @@ void keyboardFunc(unsigned char key, int xmouse, int ymouse)
         }
         
         if( key == 'r' ) {
-            fv = b2Vec2(0,0);
-            ball.body = newDynamicCircle( WORLD_X/2, WORLD_Y/2,BALL_R, BALL_DENSITY, 0.1, 0.01, 0.5);
+            ball.body->SetTransform( b2Vec2(WORLD_X/2, WORLD_Y/2), 0 );
+            ball.body->SetLinearVelocity( b2Vec2(0,0) );
         }
 
 		ball.body->ApplyForce(fv,ball.body->GetWorldCenter());
@@ -274,11 +274,12 @@ void drawScene()
 
 	// draw players
     for(int team = 0; team < TEAM_TOTAL; team++)
-		for(int i = 0; i < playersTotal[team]; i++)
-		{
+		for(int i = 0; i < playersTotal[team]; i++) {
+			
 			b2Vec2 position = robots[team][i].body->GetPosition();
 			float angle = robots[team][i].body->GetAngle();
 
+			// draw body
 			arad = 0.0;
 			glBegin(GL_LINE_LOOP);
 				for(float ang = 0; ang < 360; ang+=10)
@@ -288,14 +289,22 @@ void drawScene()
 								position.y + sin(arad)*ROBOT_R);
 				}
 			glEnd();
+			
+			// draw radius
 			drawLine(position.x , position.y, position.x + cos(angle) * ROBOT_R , position.y + sin(angle) * ROBOT_R);
+			
+			// draw force vector
+			float vsize = 2.5;
+			glColor3f(0.4,0.4,0.4);
+			drawLine(position.x , position.y, position.x + vsize*robots[team][i].forces.getX(), position.y + vsize*robots[team][i].forces.getY());
+			glColor3f(1,1,1);
 		}
 
 	// draw ball
 	arad = 0.0;
 	glBegin(GL_LINE_LOOP);
-		for(float ang = 0; ang < 360; ang+=10)
-		{
+		for(float ang = 0; ang < 360; ang+=10) {
+			
 			b2Vec2 position = ball.body->GetPosition();
 
 			arad = ang * M_PI / 180.0;
