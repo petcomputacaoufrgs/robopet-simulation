@@ -2,6 +2,8 @@
 
 int main(int argc, char** argv) {
 
+	parseOptions(argc,argv);
+	
 	initWorld();
 	initObjects();
 

@@ -15,9 +15,6 @@
 #define ROBOT_R MM_TO_M(ROBOT_RADIUS_MM)
 #define BALL_R MM_TO_M(BALL_RADIUS_MM)
 
-#define ROBOT_DENSITY 0.02
-#define BALL_DENSITY 0.01
-
 //-------------
 
 #define WORLD_X MM_TO_M(FIELD_WIDTH)
@@ -26,7 +23,18 @@
 #define WINDOW_X 600
 #define WINDOW_Y 400
 
+
 ////////////////////////////////////////////////////////////////////////
+
+float MOTOR_FORCE = 10;
+
+float ROBOT_DENSITY = 0.02;
+float BALL_DENSITY = 0.01;
+
+float BALL_DAMP = 0.5;
+float ROBOT_DAMP = 10;
+
+//-------------
 
 Robot robots[TEAM_TOTAL][MAX_ROBOTS];
 Ball ball;
@@ -36,7 +44,9 @@ b2World* world;
 RoboPETServer simtotracker(PORT_SIM_TO_TRACKER, IP_SIM_TO_TRACKER);
 RoboPETClient radiotosim(PORT_RADIO_TO_SIM, IP_RADIO_TO_SIM);
 
+
 ////////////////////////////////////////////////////////////////////////
+
 
 
 
@@ -87,14 +97,12 @@ void process()
 	b2Vec2 ball_move;
 	int i, j;
 	
-	float force = 10;
-
 	//iterate to move the bots
 	for (i = 0; i < TEAM_TOTAL; i++) {
 			for (j = 0; j < playersTotal[i]; j++) {
 
 					//this is the vector of the bot[i][j] movement
-					bot_move = b2Vec2(force*robots[i][j].forces.getX(), force*robots[i][j].forces.getY());
+					bot_move = b2Vec2(MOTOR_FORCE*robots[i][j].forces.getX(), MOTOR_FORCE*robots[i][j].forces.getY());
 					robots[i][j].body->ApplyForce(bot_move, robots[i][j].body->GetWorldCenter());
 					
 					printf("APPLIED FORCE: robot %i - <%f, %f>\n",j, bot_move.x,bot_move.y);
@@ -202,15 +210,31 @@ void initObjects()
 		for(int i = 0; i < playersTotal[team]; i++) {
 			robots[team][i].body = newDynamicCircle(rand()%(int)WORLD_X,
 													rand()%(int)WORLD_Y,
-													ROBOT_R, ROBOT_DENSITY, 0.1, 0.4, 10);
+													ROBOT_R, ROBOT_DENSITY, 0.1, 0.4, ROBOT_DAMP);
 			robots[team][i].id = i;
 		}
 
-    ball.body = newDynamicCircle( WORLD_X/2, WORLD_Y/2,BALL_R, BALL_DENSITY, 0.1, 1, 0.5);
+    ball.body = newDynamicCircle( WORLD_X/2, WORLD_Y/2,BALL_R, BALL_DENSITY, 0.1, 1, BALL_DAMP);
+}
+
+void resetBall()
+{	
+	ball.body->SetTransform( b2Vec2(WORLD_X/2, WORLD_Y/2), 0 );
+	ball.body->SetLinearVelocity( b2Vec2(0,0) );	
+}
+
+void resetPlayers() {
+	for(int team = 0; team < TEAM_TOTAL; team++)
+		for(int i = 0; i < playersTotal[team]; i++) {
+			robots[team][i].body->SetTransform( b2Vec2(rand()%(int)WORLD_X, rand()%(int)WORLD_Y), 0 );
+			robots[team][i].body->SetLinearVelocity( b2Vec2(0,0) );
+		}		
 }
 
 void keyboardFunc(unsigned char key, int xmouse, int ymouse)
 {
+		// Ball manual control
+		
 		b2Vec2 fv=b2Vec2(0,0);
 		float force = 1; // Newtons*100
 
@@ -230,15 +254,21 @@ void keyboardFunc(unsigned char key, int xmouse, int ymouse)
             fv = b2Vec2(0,force);
         }
         
+        ball.body->ApplyForce(fv,ball.body->GetWorldCenter());
+        
+        
+        // Other
         if( key == 'r' ) {
-            ball.body->SetTransform( b2Vec2(WORLD_X/2, WORLD_Y/2), 0 );
-            ball.body->SetLinearVelocity( b2Vec2(0,0) );
+            resetBall();
         }
+        
+        if( key == 'R' ) {
+			resetBall();
+			resetPlayers();
+		}
 
-		ball.body->ApplyForce(fv,ball.body->GetWorldCenter());
-
-		/*robots[0][0].body->ApplyForce(fv,robots[0][0].body->GetWorldCenter());
-		
+		/*
+		// robot manual control
 		if( key == 'i' ) {
 				robots[0][0].doKick = 1;
 				cout<<"kick="<<robots[0][0].doKick<<endl;
@@ -259,7 +289,7 @@ void keyboardFunc(unsigned char key, int xmouse, int ymouse)
 		
 }
 
-void drawScene()
+void iterate()
 {
 	float arad;
 	
@@ -343,7 +373,7 @@ void initGlut(int argc, char** argv)
     glutInitWindowSize (WINDOW_X,WINDOW_Y);
     glutCreateWindow("RoboPET Simulator - controls: WASD, IJKL");
 
-	glutIdleFunc (drawScene);
+	glutIdleFunc (iterate);
 	glutKeyboardFunc(keyboardFunc);
 
 	glutMainLoop();
@@ -419,4 +449,26 @@ void openRadiotosim() {
 void openSimtotracker() {
 
 	simtotracker.open();
+}
+
+void parseOptions(int argc, char **argv)
+{
+	char ch;
+
+	while((ch = getopt(argc, argv, "uh")) != EOF) {
+		
+		switch(ch) {
+			case 'h':
+				// Be sure that this print is updated with all options from this 'switch'.
+				printf("Command line options:\n");
+				printf(" -u\t\t Unreal Simulation Mode.\n");
+				break;
+			
+			case 'u':
+				ROBOT_DAMP = 30;
+				printf("Unreal Simulation Mode ON.\n");
+				break;
+		}
+	}
+
 }
