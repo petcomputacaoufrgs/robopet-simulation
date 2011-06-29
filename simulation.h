@@ -41,6 +41,9 @@ struct Ball {
 };
 
 
+// parse command line options
+void parseOptions(int argc, char **argv);
+
 void receive();
 
 void send();
@@ -66,8 +69,6 @@ void initWorld();
 
 void initGlut(int argc, char** argv);
 
-
-// Gambis
 
 void openRadiotosim();
 void openSimtotracker();
