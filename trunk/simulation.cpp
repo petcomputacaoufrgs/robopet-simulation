@@ -4,8 +4,7 @@
 
 ////////////////////////////////////////////////////////////////////////
 
-#define MAX_ROBOTS 5
-#define MAX_ROBOTS 5
+#define MAX_ROBOTS 10
 #define K_TRESHOLD 3 //how close to the ball the bot should be to kick it
 #define KICKFORCE 50 //how strong it should be?
 #define DRIBBLEFORCE 5 
@@ -38,7 +37,7 @@ float ROBOT_DAMP = 10;
 
 Robot robots[TEAM_TOTAL][MAX_ROBOTS];
 Ball ball;
-int playersTotal[TEAM_TOTAL] = {2, 0};
+int playersTotal[TEAM_TOTAL] = {2,5};
 b2World* world;
 
 RoboPETServer simtotracker(PORT_SIM_TO_TRACKER, IP_SIM_TO_TRACKER);
@@ -105,8 +104,8 @@ void process()
 					bot_move = b2Vec2(MOTOR_FORCE*robots[i][j].forces.getX(), MOTOR_FORCE*robots[i][j].forces.getY());
 					robots[i][j].body->ApplyForce(bot_move, robots[i][j].body->GetWorldCenter());
 					
-					printf("APPLIED FORCE: robot %i - <%f, %f>\n",j, bot_move.x,bot_move.y);
-					printf("VELOCIDADE: robot %i - <%f, %f>\n", j, robots[i][j].body->GetLinearVelocityFromWorldPoint(b2Vec2(0,0)).x, robots[i][j].body->GetLinearVelocityFromWorldPoint(b2Vec2(0,0)).y);
+					//printf("APPLIED FORCE: robot %i - <%f, %f>\n",j, bot_move.x,bot_move.y);
+					//printf("VELOCIDADE: robot %i - <%f, %f>\n", j, robots[i][j].body->GetLinearVelocityFromWorldPoint(b2Vec2(0,0)).x, robots[i][j].body->GetLinearVelocityFromWorldPoint(b2Vec2(0,0)).y);
 
 					//rotates the botRobot
 					robots[i][j].body->SetTransform(robots[i][j].body->GetPosition(), robots[i][j].body->GetAngle()+robots[i][j].displacement_angle);
@@ -214,7 +213,7 @@ void initObjects()
 			robots[team][i].id = i;
 		}
 
-    ball.body = newDynamicCircle( WORLD_X/2, WORLD_Y/2,BALL_R, BALL_DENSITY, 0.1, 1, BALL_DAMP);
+    ball.body = newDynamicCircle( WORLD_X/2, WORLD_Y/2,BALL_R, BALL_DENSITY, 0.1, 0.2, BALL_DAMP);
 }
 
 void resetBall()
@@ -425,10 +424,10 @@ void send()
 
 				r->set_x( (int)M_TO_MM((robots[team][i].body->GetPosition().x)) );
 				r->set_y( (int)M_TO_MM((robots[team][i].body->GetPosition().y)) );
-				r->set_theta( 0 );
+				r->set_theta( (int)(robots[team][i].body->GetAngle()*180./M_PI) );
 				r->set_id( robots[team][i].id );
 
-				if(verbose) printf("SENT Robot[%i]: <%lf,%lf> (%lf degrees)\n",robots[team][i].id,robots[team][i].body->GetPosition().x,robots[team][i].body->GetPosition().y,(int)robots[team][i].body->GetAngle()*180/M_PI);
+				if(verbose) printf("SENT Robot[%i]: <%lf,%lf> (%i degrees)\n",robots[team][i].id,robots[team][i].body->GetPosition().x,robots[team][i].body->GetPosition().y,(int)(robots[team][i].body->GetAngle()*180./M_PI));
 		}
 
 	 b->set_x( (int)M_TO_MM((ball.body->GetPosition().x)) );
@@ -470,5 +469,4 @@ void parseOptions(int argc, char **argv)
 				break;
 		}
 	}
-
 }
