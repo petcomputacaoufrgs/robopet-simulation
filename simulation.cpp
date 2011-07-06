@@ -246,11 +246,11 @@ void keyboardFunc(unsigned char key, int xmouse, int ymouse)
         }
 
         if( key == 's' ) {
-            fv = b2Vec2(0,-force);
+            fv = b2Vec2(0,force);
         }
 
         if( key == 'w' ) {
-            fv = b2Vec2(0,force);
+            fv = b2Vec2(0,-force);
         }
         
         ball.body->ApplyForce(fv,ball.body->GetWorldCenter());
@@ -304,8 +304,9 @@ void iterate()
 	// draw players
     for(int team = 0; team < TEAM_TOTAL; team++)
 		for(int i = 0; i < playersTotal[team]; i++) {
-			
+
 			b2Vec2 position = robots[team][i].body->GetPosition();
+			position.y = WORLD_Y - position.y; //inverte o Y pra que ele cresça pra baixo
 			float angle = robots[team][i].body->GetAngle();
 
 			// draw body
@@ -320,12 +321,14 @@ void iterate()
 			glEnd();
 			
 			// draw radius
-			drawLine(position.x , position.y, position.x + cos(angle) * ROBOT_R , position.y + sin(angle) * ROBOT_R);
+			drawLine(position.x , position.y,
+					position.x + cos(angle) * ROBOT_R , position.y + sin(angle) * ROBOT_R);
 			
 			// draw force vector
 			float vsize = 2.5;
 			glColor3f(0.4,0.4,0.4);
-			drawLine(position.x , position.y, position.x + vsize*robots[team][i].forces.getX(), position.y + vsize*robots[team][i].forces.getY());
+			drawLine(position.x , position.y,
+					position.x + vsize*robots[team][i].forces.getX(), position.y - vsize*robots[team][i].forces.getY());
 			glColor3f(1,1,1);
 		}
 
@@ -335,6 +338,7 @@ void iterate()
 		for(float ang = 0; ang < 360; ang+=10) {
 			
 			b2Vec2 position = ball.body->GetPosition();
+			position.y = WORLD_Y - position.y; //inverte o Y pra que ele cresça pra baixo
 
 			arad = ang * M_PI / 180.0;
 			glVertex2f( position.x + cos(arad)*BALL_R,
