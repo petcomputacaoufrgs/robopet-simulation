@@ -6,7 +6,7 @@ int main(int argc, char** argv) {
 	
 	initWorld();
 	initObjects();
-
+	
 	printf("Simulator Running!\n");
 
 	openRadiotosim();

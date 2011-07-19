@@ -23,7 +23,7 @@ class Robot {
 		~Robot() {};
 
 		b2Body* body;
-		Vector forces;
+		Vector forces; // forces that we have received from the radio
 		float displacement_angle;
 		int doKick;
 		int doDribble;
@@ -69,6 +69,6 @@ void initWorld();
 
 void initGlut(int argc, char** argv);
 
-
 void openRadiotosim();
+
 void openSimtotracker();
