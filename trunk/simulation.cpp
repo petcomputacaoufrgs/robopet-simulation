@@ -16,11 +16,14 @@
 
 //-------------
 
-#define WORLD_X MM_TO_M(FIELD_WIDTH)
-#define WORLD_Y MM_TO_M(FIELD_HEIGHT)
+#define WORLD_X MM_TO_M(ARENA_WIDTH_MM)
+#define WORLD_Y MM_TO_M(ARENA_HEIGHT_MM)
+#define FIELD_X MM_TO_M(FIELD_WIDTH_MM)
+#define FIELD_Y MM_TO_M(FIELD_HEIGHT_MM)
+#define ARENA_BORDER MM_TO_M(BORDER)
 
-#define WINDOW_X 600
-#define WINDOW_Y 400
+#define WINDOW_X 740
+#define WINDOW_Y 540
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -28,10 +31,9 @@
 float MOTOR_FORCE = 10;
 
 float ROBOT_DENSITY = 0.02;
-float BALL_DENSITY = 0.01;
-
-float BALL_DAMP = 0.5;
-float ROBOT_DAMP = 10;
+float BALL_DENSITY = 0.002; // the ball should weigh approximately 46 g
+float BALL_DAMP = 1; // 0 - 1
+float ROBOT_DAMP = 1;
 
 //-------------
 
@@ -46,10 +48,8 @@ RoboPETClient radiotosim(PORT_RADIO_TO_SIM, IP_RADIO_TO_SIM);
 
 ////////////////////////////////////////////////////////////////////////
 
-
-
-
-bool Robot::pointingToBall() {
+bool Robot::pointingToBall() 
+{
     //NOTE:both cmath and box2d computes trigonometric functions using angles in rad.
 
 	//ball_vec is the vector from the bot center to the ball center
@@ -72,11 +72,10 @@ bool Robot::pointingToBall() {
 	}
 
 	return false;
-
 }
 
-bool Robot::closeToBall() {
-
+bool Robot::closeToBall() 
+{
 	//ball_vec is the vector from the bot center to the ball center
 	RP::Vector ball_vec(ball.body->GetPosition().x - body->GetPosition().x,
 						ball.body->GetPosition().y - body->GetPosition().y);
@@ -88,7 +87,6 @@ bool Robot::closeToBall() {
 
 	return false;
 }
-
 
 void process()
 {
@@ -147,7 +145,7 @@ void process()
 
 	// Clear applied body forces. We didn't apply any forces, but you
 	// should know about this function.
-	//world->ClearForces();
+	world->ClearForces();
 }
 
 b2Body* newWall(float x, float y, float sizex, float sizey)
@@ -169,13 +167,13 @@ b2Body* newWall(float x, float y, float sizex, float sizey)
 	return body;
 }
 
-b2Body* newDynamicCircle(float x, float y, float radius, float density, float friction, float restitution, float damping)
+b2Body* newDynamicCircle(float x, float y, float radius, float density, float friction, float restitution, float damping, float lindamping)
 {
 	b2Vec2 pos(x,y);
 	b2BodyDef bodyDef;
 	bodyDef.type = b2_dynamicBody;
 	bodyDef.position = pos;
-    bodyDef.linearDamping = damping;
+    bodyDef.linearDamping = lindamping;
     bodyDef.angularDamping = damping;
 
 	b2Body* body = world->CreateBody(&bodyDef);
@@ -198,22 +196,33 @@ b2Body* newDynamicCircle(float x, float y, float radius, float density, float fr
 
 void initObjects()
 {
+	// world walls
 	newWall(0,WORLD_Y+1, WORLD_X,1); 	// top wall
 	newWall(0,-1, WORLD_X,1); 			// bottom wall
 	newWall(WORLD_X+1,0, 1,WORLD_Y); 	// right wall
 	newWall(-1, 0, 1, WORLD_Y); 	    // left wall
 	
-	// newDynamicCircle(x, y, radius, density, friction, restitution, damping)
+    // left goal walls
+	//newWall(ARENA_BORDER-1, (WORLD_Y/2)-3.5, 1, .2);		// bottom wall
+	//newWall(ARENA_BORDER-1, (WORLD_Y/2)+3.5, 1, .2);		// top wall
+	//newWall(ARENA_BORDER-1, (WORLD_Y/2)-8, .2, 5);			// vertical wall
 
+	// right goal walls
+	//newWall(FIELD_X+ARENA_BORDER, (WORLD_Y/2)-3.5, 1.8, .2);		// bottom wall
+	//newWall(FIELD_X+ARENA_BORDER, (WORLD_Y/2)+3.5, 1.8, .2);		// top wall
+	//newWall((FIELD_X+ARENA_BORDER)+1, (WORLD_Y/2)-3.5, .2, 3.5);	// vertical wall
+	
+	// players
 	for(int team = 0; team < TEAM_TOTAL; team++)
-		for(int i = 0; i < playersTotal[team]; i++) {
-			robots[team][i].body = newDynamicCircle(rand()%(int)WORLD_X,
-													rand()%(int)WORLD_Y,
-													ROBOT_R, ROBOT_DENSITY, 0.1, 0.4, ROBOT_DAMP);
+		for(int i = 0; i < playersTotal[team]; i++) {  // robots must be initialized inside the field boundaries
+			robots[team][i].body = newDynamicCircle((rand()%(int)FIELD_X)+ARENA_BORDER, 
+													(rand()%(int)FIELD_Y)+ARENA_BORDER,
+													ROBOT_R, ROBOT_DENSITY, 1, 1, ROBOT_DAMP, .8);
 			robots[team][i].id = i;
 		}
 
-    ball.body = newDynamicCircle( WORLD_X/2, WORLD_Y/2,BALL_R, BALL_DENSITY, 0.1, 0.2, BALL_DAMP);
+	// ball (initialized at the center of the field)
+    ball.body = newDynamicCircle( WORLD_X/2, WORLD_Y/2,BALL_R, BALL_DENSITY, 1, 1, BALL_DAMP, 0.05);
 }
 
 void resetBall()
@@ -222,10 +231,11 @@ void resetBall()
 	ball.body->SetLinearVelocity( b2Vec2(0,0) );	
 }
 
-void resetPlayers() {
+void resetPlayers() 
+{
 	for(int team = 0; team < TEAM_TOTAL; team++)
-		for(int i = 0; i < playersTotal[team]; i++) {
-			robots[team][i].body->SetTransform( b2Vec2(rand()%(int)WORLD_X, rand()%(int)WORLD_Y), 0 );
+		for(int i = 0; i < playersTotal[team]; i++) { // robots must be initialized inside the field boundaries
+			robots[team][i].body->SetTransform( b2Vec2((rand()%(int)FIELD_X)+ARENA_BORDER, (rand()%(int)FIELD_Y)+ARENA_BORDER), 0 );
 			robots[team][i].body->SetLinearVelocity( b2Vec2(0,0) );
 		}		
 }
@@ -233,29 +243,28 @@ void resetPlayers() {
 void keyboardFunc(unsigned char key, int xmouse, int ymouse)
 {
 		// Ball manual control
-		
-		b2Vec2 fv=b2Vec2(0,0);
-		float force = 1; // Newtons*100
+
+		b2Vec2 fv;
+		float force = 0.02; // Newtons*100
 
         if( key == 'a' ) {
-			fv = b2Vec2(-force,0);
+			fv = b2Vec2(-force, 0);
         }
 
         if( key == 'd' ) {
-			fv = b2Vec2(force,0);
+			fv = b2Vec2(force, 0);
         }
 
         if( key == 's' ) {
-            fv = b2Vec2(0,force);
+            fv = b2Vec2(0, force);
         }
 
         if( key == 'w' ) {
-            fv = b2Vec2(0,-force);
+            fv = b2Vec2(0, -force);
         }
-        
+
         ball.body->ApplyForce(fv,ball.body->GetWorldCenter());
-        
-        
+		
         // Other
         if( key == 'r' ) {
             resetBall();
@@ -284,8 +293,50 @@ void keyboardFunc(unsigned char key, int xmouse, int ymouse)
 		if( key == 'l' ) {
 				robots[0][0].body->ApplyTorque( -force );
 		}*/
+}
 
-		
+void drawField()
+{
+	drawLine(ARENA_BORDER, FIELD_Y+ARENA_BORDER, FIELD_X+ARENA_BORDER, FIELD_Y+ARENA_BORDER); // top line
+    drawLine(ARENA_BORDER, ARENA_BORDER, FIELD_X+ARENA_BORDER, ARENA_BORDER); // botton line
+    
+    drawLine(FIELD_X+ARENA_BORDER, ARENA_BORDER, FIELD_X+ARENA_BORDER, (WORLD_Y/2)-3.5); // right line down
+    drawLine(FIELD_X+ARENA_BORDER, (WORLD_Y/2)+3.5, FIELD_X+ARENA_BORDER, FIELD_Y+ARENA_BORDER); // right line up
+    
+    // right goal
+    drawLine(FIELD_X+ARENA_BORDER, (WORLD_Y/2)-3.5, (FIELD_X+ARENA_BORDER)+1.8, (WORLD_Y/2)-3.5); // horizontal bottom line
+    drawLine(FIELD_X+ARENA_BORDER, (WORLD_Y/2)+3.5, (FIELD_X+ARENA_BORDER)+1.8, (WORLD_Y/2)+3.5); // horizontal top line
+    drawLine((FIELD_X+ARENA_BORDER)+1.8, (WORLD_Y/2)-3.5, (FIELD_X+ARENA_BORDER)+1.8, (WORLD_Y/2)+3.5); // vertical line
+    
+    // right area
+    drawLine(FIELD_X+ARENA_BORDER, (WORLD_Y/2)-6.5, (FIELD_X+ARENA_BORDER)-4.5, (WORLD_Y/2)-6.5); // horizontal line down
+    drawLine(FIELD_X+ARENA_BORDER, (WORLD_Y/2)+6.5, (FIELD_X+ARENA_BORDER)-4.5, (WORLD_Y/2)+6.5); // horizontal line up
+    drawLine((FIELD_X+ARENA_BORDER)-4.5, (WORLD_Y/2)-6.5, (FIELD_X+ARENA_BORDER)-4.5, (WORLD_Y/2)+6.5); // vertical line
+    
+    drawLine(ARENA_BORDER, ARENA_BORDER, ARENA_BORDER, (WORLD_Y/2)-3.5); // left line down
+    drawLine(ARENA_BORDER, (WORLD_Y/2)+3.5, ARENA_BORDER, FIELD_Y+ARENA_BORDER); // left line up
+    
+    // Left goal
+    drawLine(ARENA_BORDER, (WORLD_Y/2)-3.5, ARENA_BORDER-1.8, (WORLD_Y/2)-3.5); // horizontal botton line
+    drawLine(ARENA_BORDER, (WORLD_Y/2)+3.5, ARENA_BORDER-1.8, (WORLD_Y/2)+3.5); // horizontal line up
+    drawLine(ARENA_BORDER-1.8, (WORLD_Y/2)-3.5, ARENA_BORDER-1.8, (WORLD_Y/2)+3.5); // vertical line
+    
+	// left area
+	drawLine(ARENA_BORDER, (WORLD_Y/2)-6.5, ARENA_BORDER+4.5, (WORLD_Y/2)-6.5); // horizontal line down
+    drawLine(ARENA_BORDER, (WORLD_Y/2)+6.5, ARENA_BORDER+4.5, (WORLD_Y/2)+6.5); // horizontal line up
+    drawLine(ARENA_BORDER+4.5, (WORLD_Y/2)-6.5, ARENA_BORDER+4.5, (WORLD_Y/2)+6.5); // vertical line
+            
+    drawLine(WORLD_X/2, ARENA_BORDER, WORLD_X/2, WORLD_Y-ARENA_BORDER) // center line
+    
+    // center cirlce
+    float arad = 0.0;
+    glBegin(GL_LINE_LOOP);
+		for(float ang = 0; ang < 360; ang+=10) {
+			arad = ang * M_PI / 180.0;
+			glVertex2f( (WORLD_X/2) + cos(arad)*5,
+						(WORLD_Y/2) + sin(arad)*5);
+		}
+	glEnd();
 }
 
 void iterate()
@@ -300,6 +351,9 @@ void iterate()
 	glLoadIdentity ();
 
 	glClear(GL_COLOR_BUFFER_BIT);
+	
+	//draw the field
+	drawField();
 
 	// draw players
     for(int team = 0; team < TEAM_TOTAL; team++)
@@ -325,10 +379,9 @@ void iterate()
 					position.x + cos(angle) * ROBOT_R , position.y + sin(angle) * ROBOT_R);
 			
 			// draw force vector
-			float vsize = 2.5;
-			glColor3f(0.4,0.4,0.4);
-			drawLine(position.x , position.y,
-					position.x + vsize*robots[team][i].forces.getX(), position.y - vsize*robots[team][i].forces.getY());
+			//float vsize = 2.5;
+			//drawLine(position.x , position.y,
+				//	position.x + vsize*robots[team][i].forces.getX(), position.y - vsize*robots[team][i].forces.getY());
 			glColor3f(1,1,1);
 		}
 
@@ -365,7 +418,6 @@ void iterate()
 
 void initWorld()
 {
-	// b2World( b2Vec2 &gravityVector, bool doSleep )
 	world = new b2World(b2Vec2(0,0), false);
 }
 
@@ -394,7 +446,6 @@ void receive()
 		//playersTotal[data.team_id()] = data.robots_size();
 
 		for(int i = 0; i < data.robots_size(); i++) {
-			
 			robots[data.team_id()][i].forces = Vector(data.robots(i).force_x(), data.robots(i).force_y());
 			robots[data.team_id()][i].forces.rotate(-90);
 			robots[data.team_id()][i].displacement_angle = data.robots(i).displacement_theta();
@@ -426,16 +477,16 @@ void send()
 						simtotrackerPacket->add_blue_robots() :
 						simtotrackerPacket->add_yellow_robots());
 
-				r->set_x( (int)M_TO_MM((robots[team][i].body->GetPosition().x)) );
-				r->set_y( (int)M_TO_MM((robots[team][i].body->GetPosition().y)) );
+				r->set_x( (int)M_TO_MM(robots[team][i].body->GetPosition().x) );
+				r->set_y( (int)M_TO_MM(robots[team][i].body->GetPosition().y) );
 				r->set_theta( (int)(robots[team][i].body->GetAngle()*180./M_PI) );
 				r->set_id( robots[team][i].id );
 
 				if(verbose) printf("SENT Robot[%i]: <%lf,%lf> (%i degrees)\n",robots[team][i].id,robots[team][i].body->GetPosition().x,robots[team][i].body->GetPosition().y,(int)(robots[team][i].body->GetAngle()*180./M_PI));
 		}
 
-	 b->set_x( (int)M_TO_MM((ball.body->GetPosition().x)) );
-	 b->set_y( (int)M_TO_MM((ball.body->GetPosition().y)) );
+	 b->set_x( (int)M_TO_MM(ball.body->GetPosition().x) );
+	 b->set_y( (int)M_TO_MM(ball.body->GetPosition().y) );
 
 	 simtotracker.send(packet);
 
@@ -445,12 +496,13 @@ void send()
 	//printf("Sent Sim-To-Tracker\n");
 }
 
-void openRadiotosim() {
-
+void openRadiotosim() 
+{
 	radiotosim.open(false);
 }
-void openSimtotracker() {
 
+void openSimtotracker() 
+{
 	simtotracker.open();
 }
 
