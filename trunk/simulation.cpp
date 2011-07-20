@@ -208,8 +208,8 @@ void initObjects()
 	newWall(ARENA_BORDER-1.9, (WORLD_Y/2), .2, 3.5);	// vertical wall
 
 	// right goal walls
-	newWall(FIELD_X+ARENA_BORDER+1, (WORLD_Y/2)-3.7, 1, .2);		// top wall
-	newWall(FIELD_X+ARENA_BORDER+1, (WORLD_Y/2)+3.5, 1, .2);		// bottom wall
+	newWall(FIELD_X+ARENA_BORDER+1, (WORLD_Y/2)-3.7, 1, .2);	// top wall
+	newWall(FIELD_X+ARENA_BORDER+1, (WORLD_Y/2)+3.5, 1, .2);	// bottom wall
 	newWall((FIELD_X+ARENA_BORDER)+1.9, (WORLD_Y/2), .2, 3.5);	// vertical wall
 	
 	// players
