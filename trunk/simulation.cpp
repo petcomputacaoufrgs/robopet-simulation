@@ -203,14 +203,14 @@ void initObjects()
 	newWall(-1, 0, 1, WORLD_Y); 	    // left wall
 	
     // left goal walls
-	//newWall(ARENA_BORDER-1, (WORLD_Y/2)-3.5, 1, .2);		// bottom wall
-	//newWall(ARENA_BORDER-1, (WORLD_Y/2)+3.5, 1, .2);		// top wall
-	//newWall(ARENA_BORDER-1, (WORLD_Y/2)-8, .2, 5);			// vertical wall
+	newWall(ARENA_BORDER-1, (WORLD_Y/2)-3.7, 1, .2);	// top wall
+	newWall(ARENA_BORDER-1, (WORLD_Y/2)+3.5, 1, .2);	// botton wall
+	newWall(ARENA_BORDER-1.9, (WORLD_Y/2), .2, 3.5);	// vertical wall
 
 	// right goal walls
-	//newWall(FIELD_X+ARENA_BORDER, (WORLD_Y/2)-3.5, 1.8, .2);		// bottom wall
-	//newWall(FIELD_X+ARENA_BORDER, (WORLD_Y/2)+3.5, 1.8, .2);		// top wall
-	//newWall((FIELD_X+ARENA_BORDER)+1, (WORLD_Y/2)-3.5, .2, 3.5);	// vertical wall
+	newWall(FIELD_X+ARENA_BORDER+1, (WORLD_Y/2)-3.7, 1, .2);		// top wall
+	newWall(FIELD_X+ARENA_BORDER+1, (WORLD_Y/2)+3.5, 1, .2);		// bottom wall
+	newWall((FIELD_X+ARENA_BORDER)+1.9, (WORLD_Y/2), .2, 3.5);	// vertical wall
 	
 	// players
 	for(int team = 0; team < TEAM_TOTAL; team++)

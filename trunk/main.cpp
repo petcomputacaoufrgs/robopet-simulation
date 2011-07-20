@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
 	printf("Press <Enter> to open connection with client...\n"); getchar();
 
 	openSimtotracker();
-
+	
 	initGlut(argc, argv); //open renderer
 
 	/* //this is the original main loop, without glut loop
