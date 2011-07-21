@@ -28,9 +28,9 @@
 
 ////////////////////////////////////////////////////////////////////////
 
-float MOTOR_FORCE = .0625      ;
+float MOTOR_FORCE = .0625;
 
-float ROBOT_DENSITY = 0.02;
+float ROBOT_DENSITY = 0.015;
 float BALL_DENSITY = 0.002; // the ball should weigh approximately 46 g
 float BALL_DAMP = 1; // 0 - 1
 float ROBOT_DAMP = 1;
