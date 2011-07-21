@@ -72,3 +72,5 @@ void initGlut(int argc, char** argv);
 void openRadiotosim();
 
 void openSimtotracker();
+
+void drawField();

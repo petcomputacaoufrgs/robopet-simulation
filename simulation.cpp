@@ -6,8 +6,8 @@
 
 #define MAX_ROBOTS 10
 #define K_TRESHOLD 3 //how close to the ball the bot should be to kick it
-#define KICKFORCE 50 //how strong it should be?
-#define DRIBBLEFORCE 5 
+#define KICKFORCE .2 //how strong it should be?
+#define DRIBBLEFORCE .05 
 
 //-------------
 
@@ -28,7 +28,7 @@
 
 ////////////////////////////////////////////////////////////////////////
 
-float MOTOR_FORCE = 10;
+float MOTOR_FORCE = .0625      ;
 
 float ROBOT_DENSITY = 0.02;
 float BALL_DENSITY = 0.002; // the ball should weigh approximately 46 g
@@ -44,7 +44,6 @@ b2World* world;
 
 RoboPETServer simtotracker(PORT_SIM_TO_TRACKER, IP_SIM_TO_TRACKER);
 RoboPETClient radiotosim(PORT_RADIO_TO_SIM, IP_RADIO_TO_SIM);
-
 
 ////////////////////////////////////////////////////////////////////////
 
@@ -201,7 +200,7 @@ void initObjects()
 	newWall(0,-1, WORLD_X,1); 			// bottom wall
 	newWall(WORLD_X+1,0, 1,WORLD_Y); 	// right wall
 	newWall(-1, 0, 1, WORLD_Y); 	    // left wall
-	
+    
     // left goal walls
 	newWall(ARENA_BORDER-1, (WORLD_Y/2)-3.7, 1, .2);	// top wall
 	newWall(ARENA_BORDER-1, (WORLD_Y/2)+3.5, 1, .2);	// botton wall
@@ -217,12 +216,12 @@ void initObjects()
 		for(int i = 0; i < playersTotal[team]; i++) {  // robots must be initialized inside the field boundaries
 			robots[team][i].body = newDynamicCircle((rand()%(int)FIELD_X)+ARENA_BORDER, 
 													(rand()%(int)FIELD_Y)+ARENA_BORDER,
-													ROBOT_R, ROBOT_DENSITY, 1, 1, ROBOT_DAMP, .8);
+													ROBOT_R, ROBOT_DENSITY, 1, 1, ROBOT_DAMP, 1.5);
 			robots[team][i].id = i;
 		}
 
 	// ball (initialized at the center of the field)
-    ball.body = newDynamicCircle( WORLD_X/2, WORLD_Y/2,BALL_R, BALL_DENSITY, 1, 1, BALL_DAMP, 0.05);
+    ball.body = newDynamicCircle( WORLD_X/2, WORLD_Y/2,BALL_R, BALL_DENSITY, 1, 1, BALL_DAMP, 0.1);
 }
 
 void resetBall()
@@ -356,7 +355,7 @@ void iterate()
 	drawField();
 
 	// draw players
-    for(int team = 0; team < TEAM_TOTAL; team++)
+    for(int team = 0; team < TEAM_TOTAL; team++){
 		for(int i = 0; i < playersTotal[team]; i++) {
 
 			b2Vec2 position = robots[team][i].body->GetPosition();
@@ -384,6 +383,7 @@ void iterate()
 				//	position.x + vsize*robots[team][i].forces.getX(), position.y - vsize*robots[team][i].forces.getY());
 			glColor3f(1,1,1);
 		}
+	}
 
 	// draw ball
 	arad = 0.0;
@@ -477,16 +477,16 @@ void send()
 						simtotrackerPacket->add_blue_robots() :
 						simtotrackerPacket->add_yellow_robots());
 
-				r->set_x( (int)M_TO_MM(robots[team][i].body->GetPosition().x) );
-				r->set_y( (int)M_TO_MM(robots[team][i].body->GetPosition().y) );
+				r->set_x( (int)M_TO_MM(robots[team][i].body->GetPosition().x - BORDER));
+				r->set_y( (int)M_TO_MM(robots[team][i].body->GetPosition().y - BORDER));
 				r->set_theta( (int)(robots[team][i].body->GetAngle()*180./M_PI) );
 				r->set_id( robots[team][i].id );
 
 				if(verbose) printf("SENT Robot[%i]: <%lf,%lf> (%i degrees)\n",robots[team][i].id,robots[team][i].body->GetPosition().x,robots[team][i].body->GetPosition().y,(int)(robots[team][i].body->GetAngle()*180./M_PI));
 		}
 
-	 b->set_x( (int)M_TO_MM(ball.body->GetPosition().x) );
-	 b->set_y( (int)M_TO_MM(ball.body->GetPosition().y) );
+	 b->set_x( (int)M_TO_MM(ball.body->GetPosition().x - BORDER));
+	 b->set_y( (int)M_TO_MM(ball.body->GetPosition().y - BORDER));
 
 	 simtotracker.send(packet);
 
