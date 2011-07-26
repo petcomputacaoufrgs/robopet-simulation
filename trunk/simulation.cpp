@@ -22,8 +22,8 @@
 #define FIELD_Y MM_TO_M(FIELD_HEIGHT_MM)
 #define ARENA_BORDER MM_TO_M(BORDER)
 
-#define WINDOW_X 740
-#define WINDOW_Y 540
+#define WINDOW_X (ARENA_WIDTH_MM/15)
+#define WINDOW_Y (ARENA_HEIGHT_MM/15)
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -378,9 +378,9 @@ void iterate()
 					position.x + cos(angle) * ROBOT_R , position.y + sin(angle) * ROBOT_R);
 			
 			// draw force vector
-			//float vsize = 2.5;
-			//drawLine(position.x , position.y,
-				//	position.x + vsize*robots[team][i].forces.getX(), position.y - vsize*robots[team][i].forces.getY());
+			float vsize = 2.5;
+			drawLine(position.x , position.y,
+				position.x + vsize*robots[team][i].forces.getX(), position.y - vsize*robots[team][i].forces.getY());
 			glColor3f(1,1,1);
 		}
 	}
@@ -479,7 +479,8 @@ void send()
 
 				r->set_x( (int)M_TO_MM(robots[team][i].body->GetPosition().x - BORDER));
 				r->set_y( (int)M_TO_MM(robots[team][i].body->GetPosition().y - BORDER));
-				r->set_theta( (int)(robots[team][i].body->GetAngle()*180./M_PI) );
+				//r->set_theta( (int)(robots[team][i].body->GetAngle()*180./M_PI) );
+				r->set_theta( 0 );
 				r->set_id( robots[team][i].id );
 
 				if(verbose) printf("SENT Robot[%i]: <%lf,%lf> (%i degrees)\n",robots[team][i].id,robots[team][i].body->GetPosition().x,robots[team][i].body->GetPosition().y,(int)(robots[team][i].body->GetAngle()*180./M_PI));
