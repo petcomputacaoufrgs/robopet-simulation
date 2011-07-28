@@ -1,6 +1,14 @@
 #include "simulation.h"
 
 int main(int argc, char** argv) {
+	
+	printf("CONTROLS:\n");
+	printf("  > WASD - Move the playeres\n");
+	printf("  > E Q - Spin the playeres\n");
+	printf("  > SPACE - Kick\n");
+	printf("  > V - Drible\n");
+	printf("  > TAB - Select player\n");
+	printf("  > IJKL - Move the ball\n\n");
 
 	parseOptions(argc,argv);
 	

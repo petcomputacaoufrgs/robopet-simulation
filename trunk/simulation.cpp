@@ -6,10 +6,12 @@
 ////////////////////////////////////////////////////////////////////////
 
 #define MAX_ROBOTS 10
+#define NUM_ROBOTS_TEAM 5
 #define KICKFORCE .2 //how strong it should be?
 #define DRIBBLEFORCE .005 
 #define K_TRESHOLD .5 //how close to the ball the bot should be to kick it
 #define POINT_TO_TRESHOLD .05
+#define UNREAL_CONST 10.0 //constant for the unreal mode
 
 //-------------
 
@@ -41,8 +43,9 @@ float ROBOT_DAMP = 1;
 
 Robot robots[TEAM_TOTAL][MAX_ROBOTS];
 Ball ball;
-int playersTotal[TEAM_TOTAL] = {2,5};
+int playersTotal[TEAM_TOTAL] = {2,NUM_ROBOTS_TEAM};
 b2World* world;
+int robotSelected = 0;
 
 RoboPETServer simtotracker(PORT_SIM_TO_TRACKER, IP_SIM_TO_TRACKER);
 RoboPETClient radiotosim(PORT_RADIO_TO_SIM, IP_RADIO_TO_SIM);
@@ -248,32 +251,77 @@ void resetPlayers()
 
 void keyboardFunc(unsigned char key, int xmouse, int ymouse)
 {
-		// Ball manual control
-
+		if (key == 9)
+		{
+			if (robotSelected < NUM_ROBOTS_TEAM-1) {
+					robotSelected++;
+			}
+			else {
+				robotSelected = 0;
+			}
+		}
+		
+		// Ball manual control	
 		b2Vec2 fv;
-		float force = .9;
-		//float force = 0.02; // Newtons*100
+		float ballForce = .02; // Newtons*100
 
-        if( key == 'a' ) {
-			fv = b2Vec2(-force, 0);
+        if( key == 'j' ) {
+			fv = b2Vec2(-ballForce, 0);
+        }
+
+        if( key == 'l' ) {
+			fv = b2Vec2(ballForce, 0);
+        }
+
+        if( key == 'k' ) {
+            fv = b2Vec2(0, ballForce);
+        }
+
+        if( key == 'i' ) {
+            fv = b2Vec2(0, -ballForce);
+        }
+
+        ball.body->ApplyForce(fv,ball.body->GetWorldCenter());
+		
+		// robot manual control
+		float robotForce = .9;
+		
+		if( key == 'a' ) {
+			fv = b2Vec2(-robotForce, 0);
         }
 
         if( key == 'd' ) {
-			fv = b2Vec2(force, 0);
+			fv = b2Vec2(robotForce, 0);
         }
 
         if( key == 's' ) {
-            fv = b2Vec2(0, force);
+            fv = b2Vec2(0, robotForce);
         }
 
         if( key == 'w' ) {
-            fv = b2Vec2(0, -force);
+            fv = b2Vec2(0, -robotForce);
         }
-
-		robots[0][0].body->ApplyForce(fv, robots[0][0].body->GetWorldCenter());
-        //ball.body->ApplyForce(fv,ball.body->GetWorldCenter());
+        
+        robots[1][robotSelected].body->ApplyForce( fv, robots[1][robotSelected].body->GetWorldCenter());
 		
-        // Other
+		if( key == 32 ) { // SPACE = KICK
+				robots[1][robotSelected].doKick = 1;
+				cout<<"kick="<<robots[0][0].doKick<<endl;
+		}
+
+		if( key == 'v' ) {
+				robots[1][robotSelected].doDribble = !robots[0][0].doDribble;
+				cout<<"dribble="<<robots[0][0].doDribble<<endl;
+		}
+		if( key == 'q' ) {
+				robots[1][robotSelected].body->ApplyTorque( robotForce/2 );
+		}
+
+		if( key == 'e' ) {
+				robots[1][robotSelected].body->ApplyTorque( -robotForce /2 );
+		}
+		
+		// Other
         if( key == 'r' ) {
             resetBall();
         }
@@ -281,25 +329,6 @@ void keyboardFunc(unsigned char key, int xmouse, int ymouse)
         if( key == 'R' ) {
 			resetBall();
 			resetPlayers();
-		}
-
-		
-		// robot manual control
-		if( key == 'i' ) {
-				robots[0][0].doKick = 1;
-				cout<<"kick="<<robots[0][0].doKick<<endl;
-		}
-
-		if( key == 'k' ) {
-				robots[0][0].doDribble = !robots[0][0].doDribble;
-				cout<<"dribble="<<robots[0][0].doDribble<<endl;
-		}
-		if( key == 'j' ) {
-				robots[0][0].body->ApplyTorque( force/2 );
-		}
-
-		if( key == 'l' ) {
-				robots[0][0].body->ApplyTorque( -force/2 );
 		}
 }
 
@@ -369,7 +398,17 @@ void iterate()
 
 			b2Vec2 position = robots[team][i].body->GetPosition();
 			position.y = WORLD_Y - position.y; //inverte o Y pra que ele cresça pra baixo
+			glLineWidth(2);
 			
+			if (robotSelected == i && team == 1)
+			{
+				glColor3f(1,.5,.5);
+			}
+			else
+			{
+				glColor3f(1,1,1);
+			}
+						
 			// draw body
 			arad = 0.0;
 			glBegin(GL_LINE_LOOP);
@@ -392,10 +431,12 @@ void iterate()
 			float vsize = 2.5;
 			drawLine(position.x , position.y,
 				position.x + vsize*robots[team][i].forces.getX(), position.y - vsize*robots[team][i].forces.getY());
-			glColor3f(1,1,1);
+			
 		}
 	}
 
+	glColor3f(1,1,1);
+	
 	// draw ball
 	arad = 0.0;
 	glBegin(GL_LINE_LOOP);
@@ -409,6 +450,8 @@ void iterate()
 						position.y + sin(arad)*BALL_R);
 		}
 	glEnd();
+	
+	glLineWidth(1);
 
 	glutSwapBuffers();
 
@@ -437,7 +480,7 @@ void initGlut(int argc, char** argv)
 	glutInit (&argc, argv);
     glutInitDisplayMode ( GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA );
     glutInitWindowSize (WINDOW_X,WINDOW_Y);
-    glutCreateWindow("RoboPET Simulator - controls: WASD, IJKL");
+    glutCreateWindow("RoboPET Simulator - controls: WASD, E, Q, V, SPACE, IJKL");
 
 	glutIdleFunc (iterate);
 	glutKeyboardFunc(keyboardFunc);
@@ -531,7 +574,8 @@ void parseOptions(int argc, char **argv)
 				break;
 			
 			case 'u':
-				ROBOT_DAMP = 30;
+				ROBOT_DENSITY *= UNREAL_CONST;
+				BALL_DENSITY *= UNREAL_CONST;
 				printf("Unreal Simulation Mode ON.\n");
 				break;
 		}
