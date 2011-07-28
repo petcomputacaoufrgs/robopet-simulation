@@ -30,8 +30,8 @@
 
 float MOTOR_FORCE = .0625;
 
-float ROBOT_DENSITY = 0.015;
-float BALL_DENSITY = 0.002; // the ball should weigh approximately 46 g
+float ROBOT_DENSITY = 0.15;
+float BALL_DENSITY = 0.02; // the ball should weigh approximately 46 g
 float BALL_DAMP = 1; // 0 - 1
 float ROBOT_DAMP = 1;
 
@@ -236,6 +236,7 @@ void resetPlayers()
 		for(int i = 0; i < playersTotal[team]; i++) { // robots must be initialized inside the field boundaries
 			robots[team][i].body->SetTransform( b2Vec2((rand()%(int)FIELD_X)+ARENA_BORDER, (rand()%(int)FIELD_Y)+ARENA_BORDER), 0 );
 			robots[team][i].body->SetLinearVelocity( b2Vec2(0,0) );
+			robots[team][i].forces = Vector(0,0);
 		}		
 }
 
