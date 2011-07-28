@@ -1,13 +1,15 @@
 #include "simulation.h"
 #include "math.h"
+#include "utils.h"
 
 
 ////////////////////////////////////////////////////////////////////////
 
 #define MAX_ROBOTS 10
-#define K_TRESHOLD 3 //how close to the ball the bot should be to kick it
 #define KICKFORCE .2 //how strong it should be?
-#define DRIBBLEFORCE .05 
+#define DRIBBLEFORCE .005 
+#define K_TRESHOLD .5 //how close to the ball the bot should be to kick it
+#define POINT_TO_TRESHOLD .05
 
 //-------------
 
@@ -30,9 +32,9 @@
 
 float MOTOR_FORCE = .0625;
 
-float ROBOT_DENSITY = 0.15;
-float BALL_DENSITY = 0.02; // the ball should weigh approximately 46 g
-float BALL_DAMP = 1; // 0 - 1
+float ROBOT_DENSITY = 0.015;
+float BALL_DENSITY = 0.002; // the ball should weigh approximately 46 g
+float BALL_DAMP = .6; // 0 - 1
 float ROBOT_DAMP = 1;
 
 //-------------
@@ -53,7 +55,7 @@ bool Robot::pointingToBall()
 
 	//ball_vec is the vector from the bot center to the ball center
 	RP::Vector ball_vec(ball.body->GetPosition().x - body->GetPosition().x,
-						ball.body->GetPosition().y - body->GetPosition().y);
+						(WORLD_Y - ball.body->GetPosition().y) - (WORLD_Y - body->GetPosition().y));
 
 	ball_vec.normalizeMe();
 
@@ -65,10 +67,14 @@ bool Robot::pointingToBall()
 	//ball_vec (dot_product) bot_vec = |bal_vec| * |bot_vec| * cos(theta)
 	//|bal_vec| == |bot_vec| == 1, because both are normalized
 	//if theta ~ 0 (cos(theta) ~ 1), the bot points to the ball
-
-	if(1-TRESHOLD <= ball_vec.dotProduct(bot_vec)) {
+	
+	float dotProd = ball_vec.dotProduct(bot_vec);
+	
+	DEBUG_VAR(dotProd);
+	
+	if(dotProd >= 0 && 1-POINT_TO_TRESHOLD <= dotProd){
 		return true;
-	}
+	}	
 
 	return false;
 }
@@ -106,7 +112,7 @@ void process()
 
 					//rotates the botRobot
 					robots[i][j].body->SetTransform(robots[i][j].body->GetPosition(), robots[i][j].body->GetAngle()+robots[i][j].displacement_angle);
-
+					
 					//Here we test if the bot is close to the ball and near it.
 					//If so, and it wants to kick or dribble, we do it!
 					if(robots[i][j].closeToBall() && robots[i][j].pointingToBall()) {
@@ -221,7 +227,7 @@ void initObjects()
 		}
 
 	// ball (initialized at the center of the field)
-    ball.body = newDynamicCircle( WORLD_X/2, WORLD_Y/2,BALL_R, BALL_DENSITY, 1, 1, BALL_DAMP, 0.1);
+    ball.body = newDynamicCircle( WORLD_X/2, WORLD_Y/2,BALL_R, BALL_DENSITY, 1, .5, BALL_DAMP, 0.5);
 }
 
 void resetBall()
@@ -245,7 +251,8 @@ void keyboardFunc(unsigned char key, int xmouse, int ymouse)
 		// Ball manual control
 
 		b2Vec2 fv;
-		float force = 0.02; // Newtons*100
+		float force = .9;
+		//float force = 0.02; // Newtons*100
 
         if( key == 'a' ) {
 			fv = b2Vec2(-force, 0);
@@ -263,7 +270,8 @@ void keyboardFunc(unsigned char key, int xmouse, int ymouse)
             fv = b2Vec2(0, -force);
         }
 
-        ball.body->ApplyForce(fv,ball.body->GetWorldCenter());
+		robots[0][0].body->ApplyForce(fv, robots[0][0].body->GetWorldCenter());
+        //ball.body->ApplyForce(fv,ball.body->GetWorldCenter());
 		
         // Other
         if( key == 'r' ) {
@@ -275,7 +283,7 @@ void keyboardFunc(unsigned char key, int xmouse, int ymouse)
 			resetPlayers();
 		}
 
-		/*
+		
 		// robot manual control
 		if( key == 'i' ) {
 				robots[0][0].doKick = 1;
@@ -287,12 +295,12 @@ void keyboardFunc(unsigned char key, int xmouse, int ymouse)
 				cout<<"dribble="<<robots[0][0].doDribble<<endl;
 		}
 		if( key == 'j' ) {
-				robots[0][0].body->ApplyTorque( force );
+				robots[0][0].body->ApplyTorque( force/2 );
 		}
 
 		if( key == 'l' ) {
-				robots[0][0].body->ApplyTorque( -force );
-		}*/
+				robots[0][0].body->ApplyTorque( -force/2 );
+		}
 }
 
 void drawField()
@@ -361,8 +369,7 @@ void iterate()
 
 			b2Vec2 position = robots[team][i].body->GetPosition();
 			position.y = WORLD_Y - position.y; //inverte o Y pra que ele cresça pra baixo
-			float angle = robots[team][i].body->GetAngle();
-
+			
 			// draw body
 			arad = 0.0;
 			glBegin(GL_LINE_LOOP);
@@ -375,8 +382,11 @@ void iterate()
 			glEnd();
 			
 			// draw radius
+			float angle = robots[team][i].body->GetAngle();
+			
 			drawLine(position.x , position.y,
 					position.x + cos(angle) * ROBOT_R , position.y + sin(angle) * ROBOT_R);
+			
 			
 			// draw force vector
 			float vsize = 2.5;
@@ -487,14 +497,13 @@ void send()
 				if(verbose) printf("SENT Robot[%i]: <%lf,%lf> (%i degrees)\n",robots[team][i].id,robots[team][i].body->GetPosition().x,robots[team][i].body->GetPosition().y,(int)(robots[team][i].body->GetAngle()*180./M_PI));
 		}
 
-	 b->set_x( (int)M_TO_MM(ball.body->GetPosition().x - BORDER));
-	 b->set_y( (int)M_TO_MM(ball.body->GetPosition().y - BORDER));
+	b->set_x( (int)M_TO_MM(ball.body->GetPosition().x - BORDER));
+	b->set_y( (int)M_TO_MM(ball.body->GetPosition().y - BORDER));
 
-	 simtotracker.send(packet);
+	simtotracker.send(packet);
 
-	 //printf("packet.robots_blue_size() = %5i\n", simtotrackerPacket->blue_robots_size());
-	 //printf("packet.robots_yellow_size() = %5i\n", simtotrackerPacket->yellow_robots_size());
-
+	//printf("packet.robots_blue_size() = %5i\n", simtotrackerPacket->blue_robots_size());
+	//printf("packet.robots_yellow_size() = %5i\n", simtotrackerPacket->yellow_robots_size());
 	//printf("Sent Sim-To-Tracker\n");
 }
 
