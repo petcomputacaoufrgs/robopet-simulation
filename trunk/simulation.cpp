@@ -34,8 +34,8 @@
 
 float MOTOR_FORCE = .0625;
 
-float ROBOT_DENSITY = 0.015;
-float BALL_DENSITY = 0.002; // the ball should weigh approximately 46 g
+float ROBOT_DENSITY = 0.15;
+float BALL_DENSITY = 0.02; // the ball should weigh approximately 46 g
 float BALL_DAMP = .6; // 0 - 1
 float ROBOT_DAMP = 1;
 
@@ -43,7 +43,7 @@ float ROBOT_DAMP = 1;
 
 Robot robots[TEAM_TOTAL][MAX_ROBOTS];
 Ball ball;
-int playersTotal[TEAM_TOTAL] = {2,NUM_ROBOTS_TEAM};
+int playersTotal[TEAM_TOTAL] = {NUM_ROBOTS_TEAM,NUM_ROBOTS_TEAM};
 b2World* world;
 int robotSelected = 0;
 
