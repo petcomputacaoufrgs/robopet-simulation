@@ -7,8 +7,8 @@
 
 #define MAX_ROBOTS 10
 #define NUM_ROBOTS_TEAM 5
-#define KICKFORCE .2 //how strong it should be?
-#define DRIBBLEFORCE .005 
+#define KICKFORCE .9 //how strong it should be?
+#define DRIBBLEFORCE .007 
 #define K_TRESHOLD .5 //how close to the ball the bot should be to kick it
 #define POINT_TO_TRESHOLD .05
 #define UNREAL_CONST 10.0 //constant for the unreal mode
@@ -34,8 +34,8 @@
 
 float MOTOR_FORCE = .0625;
 
-float ROBOT_DENSITY = 0.01;
-float BALL_DENSITY = 0.001; // the ball should weigh approximately 46 g
+float ROBOT_DENSITY = 0.015;
+float BALL_DENSITY = 0.002; // the ball should weigh approximately 46 g
 float BALL_DAMP = .6; // 0 - 1
 float ROBOT_DAMP = 1;
 
@@ -46,6 +46,11 @@ Ball ball;
 int playersTotal[TEAM_TOTAL] = {NUM_ROBOTS_TEAM,NUM_ROBOTS_TEAM};
 b2World* world;
 int robotSelected = 0;
+
+float cosAngles[15] = {1.0, .913545, .669131, .309017, -.104529, -.5, -.809017, -.978148, -.978148, -.809017, -.5,
+					  -.104528, .309017, .669131, .913546};
+float sinAngles[15] = {.0, .406737, .743145, .951057, .994522, .866025, .587785, .207912, -.207912, -.587785, -.866025, 
+					   -.994522, -.951056, -.743145, -.406736};
 
 RoboPETServer simtotracker(PORT_SIM_TO_TRACKER, IP_SIM_TO_TRACKER);
 RoboPETClient radiotosim(PORT_RADIO_TO_SIM, IP_RADIO_TO_SIM);
@@ -100,11 +105,10 @@ void process()
 {
 	b2Vec2 bot_move;
 	b2Vec2 ball_move;
-	int i, j;
 	
 	//iterate to move the bots
-	for (i = 0; i < TEAM_TOTAL; i++) {
-			for (j = 0; j < playersTotal[i]; j++) {
+	for (int i = 0; i < TEAM_TOTAL; i++) {
+			for (int j = 0; j < playersTotal[i]; j++) {
 
 					//this is the vector of the bot[i][j] movement
 					bot_move = b2Vec2(MOTOR_FORCE*robots[i][j].forces.getX(), MOTOR_FORCE*robots[i][j].forces.getY());
@@ -119,8 +123,10 @@ void process()
 					//Here we test if the bot is close to the ball and near it.
 					//If so, and it wants to kick or dribble, we do it!
 					if(robots[i][j].closeToBall() && robots[i][j].pointingToBall()) {
-							if(robots[i][j].doKick) {
-									//crazy values. We need to measure them afer
+							robots[i][j].doDribble = 1; //just to understand... it's default if robot is close to the ball
+													
+							if (robots[i][j].doKick)
+							{
 									Vector ball_force(	ball.body->GetPosition().x - robots[i][j].body->GetPosition().x,
 													    ball.body->GetPosition().y - robots[i][j].body->GetPosition().y);
 
@@ -251,7 +257,7 @@ void resetPlayers()
 
 void keyboardFunc(unsigned char key, int xmouse, int ymouse)
 {
-		if (key == 9)
+		if (key == 9) //select player
 		{
 			if (robotSelected < NUM_ROBOTS_TEAM-1) {
 					robotSelected++;
@@ -260,76 +266,77 @@ void keyboardFunc(unsigned char key, int xmouse, int ymouse)
 				robotSelected = 0;
 			}
 		}
-		
-		// Ball manual control	
-		b2Vec2 fv;
-		float ballForce = .02; // Newtons*100
+		else{
+			// Ball manual control	
+			b2Vec2 fv;
+			float ballForce = .02; // Newtons*100
 
-        if( key == 'j' ) {
-			fv = b2Vec2(-ballForce, 0);
-        }
+			if( key == 'j' ) { //left
+				fv = b2Vec2(-ballForce, 0);
+			}
 
-        if( key == 'l' ) {
-			fv = b2Vec2(ballForce, 0);
-        }
+			if( key == 'l' ) { //right
+				fv = b2Vec2(ballForce, 0);
+			}
 
-        if( key == 'k' ) {
-            fv = b2Vec2(0, ballForce);
-        }
+			if( key == 'k' ) { //down
+				fv = b2Vec2(0, ballForce);
+			}
 
-        if( key == 'i' ) {
-            fv = b2Vec2(0, -ballForce);
-        }
+			if( key == 'i' ) { //up
+				fv = b2Vec2(0, -ballForce);
+			}
 
-        ball.body->ApplyForce(fv,ball.body->GetWorldCenter());
-		
-		// robot manual control
-		float robotForce = .9;
-		
-		if( key == 'a' ) {
-			fv = b2Vec2(-robotForce, 0);
-        }
+			ball.body->ApplyForce(fv, ball.body->GetWorldCenter());
+			
+			// robot manual control
+			float robotForce = .9;
+			
+			if( key == 'a' ) {
+				fv = b2Vec2(-robotForce, 0);
+			}
 
-        if( key == 'd' ) {
-			fv = b2Vec2(robotForce, 0);
-        }
+			if( key == 'd' ) {
+				fv = b2Vec2(robotForce, 0);
+			}
 
-        if( key == 's' ) {
-            fv = b2Vec2(0, robotForce);
-        }
+			if( key == 's' ) {
+				fv = b2Vec2(0, robotForce);
+			}
 
-        if( key == 'w' ) {
-            fv = b2Vec2(0, -robotForce);
-        }
-        
-        robots[1][robotSelected].body->ApplyForce( fv, robots[1][robotSelected].body->GetWorldCenter());
-		
-		if( key == 32 ) { // SPACE = KICK
-				robots[1][robotSelected].doKick = 1;
-				cout<<"kick="<<robots[0][0].doKick<<endl;
-		}
+			if( key == 'w' ) {
+				fv = b2Vec2(0, -robotForce);
+			}
+			
+			robots[1][robotSelected].body->ApplyForce( fv, robots[1][robotSelected].body->GetWorldCenter());
+			
+			if( key == 32 ) { // SPACE = KICK
+					robots[1][robotSelected].doKick = 1;
+					cout<<"kick="<<robots[1][robotSelected].doKick<<endl;
+			}
 
-		if( key == 'v' ) {
-				robots[1][robotSelected].doDribble = !robots[0][0].doDribble;
-				cout<<"dribble="<<robots[0][0].doDribble<<endl;
-		}
-		if( key == 'q' ) {
-				robots[1][robotSelected].body->ApplyTorque( robotForce/2 );
-		}
+			if( key == 'v' ) { //DRIBLE
+					robots[1][robotSelected].doDribble = !robots[1][robotSelected].doDribble;
+					cout<<"dribble="<<robots[1][robotSelected].doDribble<<endl;
+			}
+			if( key == 'q' ) { //turn left
+					robots[1][robotSelected].body->ApplyTorque( robotForce/2.5 );
+			}
 
-		if( key == 'e' ) {
-				robots[1][robotSelected].body->ApplyTorque( -robotForce /2 );
-		}
-		
-		// Other
-        if( key == 'r' ) {
-            resetBall();
-        }
-        
-        if( key == 'R' ) {
-			resetBall();
-			resetPlayers();
-		}
+			if( key == 'e' ) { //turn right
+					robots[1][robotSelected].body->ApplyTorque( -robotForce /2.5 );
+			}
+			
+			// Other
+			if( key == 'r' ) {
+				resetBall();
+			}
+			
+			if( key == 'R' ) {
+				resetBall();
+				resetPlayers();
+			}
+	}
 }
 
 void drawField()
@@ -366,20 +373,17 @@ void drawField()
     drawLine(WORLD_X/2, ARENA_BORDER, WORLD_X/2, WORLD_Y-ARENA_BORDER) // center line
     
     // center cirlce
-    float arad = 0.0;
-    glBegin(GL_LINE_LOOP);
-		for(float ang = 0; ang < 360; ang+=10) {
-			arad = ang * M_PI / 180.0;
-			glVertex2f( (WORLD_X/2) + cos(arad)*5,
-						(WORLD_Y/2) + sin(arad)*5);
-		}
+	glBegin(GL_LINE_LOOP);
+    for(register int k = 0; k < 15; k++) {
+		glVertex2f( (WORLD_X/2) + cosAngles[k]*5,
+					(WORLD_Y/2) + sinAngles[k]*5);
+
+	}
 	glEnd();
 }
 
 void iterate()
 {
-	float arad;
-	
 	glMatrixMode (GL_PROJECTION);
 	glViewport(0,0, WINDOW_X,WINDOW_Y);
     glLoadIdentity ();
@@ -410,14 +414,12 @@ void iterate()
 			}
 						
 			// draw body
-			arad = 0.0;
 			glBegin(GL_LINE_LOOP);
-				for(float ang = 0; ang < 360; ang+=10)
-				{
-					arad = ang * M_PI / 180.0;
-					glVertex2f( position.x + cos(arad)*ROBOT_R,
-								position.y + sin(arad)*ROBOT_R);
-				}
+     		for(register int k = 0; k < 15; k++) {
+				glVertex2f( position.x + cosAngles[k]*ROBOT_R,
+							position.y + sinAngles[k]*ROBOT_R);
+
+			}
 			glEnd();
 			
 			// draw radius
@@ -425,8 +427,7 @@ void iterate()
 			
 			drawLine(position.x , position.y,
 					position.x + cos(angle) * ROBOT_R , position.y + sin(angle) * ROBOT_R);
-			
-			
+						
 			// draw force vector
 			float vsize = 2.5;
 			drawLine(position.x , position.y,
@@ -438,17 +439,15 @@ void iterate()
 	glColor3f(1,1,1);
 	
 	// draw ball
-	arad = 0.0;
+	b2Vec2 position = ball.body->GetPosition();
+	position.y = WORLD_Y - position.y; //inverte o Y pra que ele cresça pra baixo
+	
 	glBegin(GL_LINE_LOOP);
-		for(float ang = 0; ang < 360; ang+=10) {
-			
-			b2Vec2 position = ball.body->GetPosition();
-			position.y = WORLD_Y - position.y; //inverte o Y pra que ele cresça pra baixo
+    for(register int k = 0; k < 15; k++) {
+		glVertex2f( position.x + cosAngles[k]*BALL_R,
+					position.y + sinAngles[k]*BALL_R);
 
-			arad = ang * M_PI / 180.0;
-			glVertex2f( position.x + cos(arad)*BALL_R,
-						position.y + sin(arad)*BALL_R);
-		}
+	}
 	glEnd();
 	
 	glLineWidth(1);
@@ -467,7 +466,6 @@ void iterate()
 		receive();
 		process();
 		send();
-
 }
 
 void initWorld()
@@ -515,11 +513,14 @@ void receive()
 
 void send()
 {
-	bool verbose = true;
+	//bool verbose = true;
 	RoboPET_WrapperPacket packet;
 
-	if(verbose) printf("----------------------------\n");
-	if(verbose) printf("Sendindg Sim-To-Tracker\n");
+	//if(verbose) printf("----------------------------\n");
+	//if(verbose) printf("Sendindg Sim-To-Tracker\n");
+	
+	printf("----------------------------\n");
+	printf("Sendindg Sim-To-Tracker\n");
 
 	SimToTracker *simtotrackerPacket = packet.mutable_simtotracker();
 	SimToTracker::Ball *b = simtotrackerPacket->mutable_ball();
@@ -537,7 +538,8 @@ void send()
 				r->set_theta( 0 );
 				r->set_id( robots[team][i].id );
 
-				if(verbose) printf("SENT Robot[%i]: <%lf,%lf> (%i degrees)\n",robots[team][i].id,robots[team][i].body->GetPosition().x,robots[team][i].body->GetPosition().y,(int)(robots[team][i].body->GetAngle()*180./M_PI));
+				//if(verbose) printf("SENT Robot[%i]: <%lf,%lf> (%i degrees)\n",robots[team][i].id,robots[team][i].body->GetPosition().x,robots[team][i].body->GetPosition().y,(int)(robots[team][i].body->GetAngle()*180./M_PI));
+				printf("SENT Robot[%i]: <%lf,%lf> (%i degrees)\n",robots[team][i].id,robots[team][i].body->GetPosition().x,robots[team][i].body->GetPosition().y,(int)(robots[team][i].body->GetAngle()*180./M_PI));
 		}
 
 	b->set_x( (int)M_TO_MM(ball.body->GetPosition().x - BORDER));
