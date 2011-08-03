@@ -5,8 +5,6 @@
 
 ////////////////////////////////////////////////////////////////////////
 
-#define MAX_ROBOTS 10
-#define NUM_ROBOTS_TEAM 5
 #define KICKFORCE .9 //how strong it should be?
 #define DRIBBLEFORCE .007 
 #define K_TRESHOLD .5 //how close to the ball the bot should be to kick it
@@ -41,9 +39,9 @@ float ROBOT_DAMP = 1;
 
 //-------------
 
-Robot robots[TEAM_TOTAL][MAX_ROBOTS];
+int playersTotal[TEAM_TOTAL] = {5, 5};
+Robot robots[TEAM_TOTAL][MAX_PLAYERS];
 Ball ball;
-int playersTotal[TEAM_TOTAL] = {NUM_ROBOTS_TEAM,NUM_ROBOTS_TEAM};
 b2World* world;
 int robotSelected = 0;
 
@@ -259,7 +257,7 @@ void keyboardFunc(unsigned char key, int xmouse, int ymouse)
 {
 		if (key == 9) //select player
 		{
-			if (robotSelected < NUM_ROBOTS_TEAM-1) {
+			if (robotSelected < MAX_PLAYERS-1) {
 					robotSelected++;
 			}
 			else {
@@ -566,20 +564,44 @@ void parseOptions(int argc, char **argv)
 {
 	char ch;
 
-	while((ch = getopt(argc, argv, "uh")) != EOF) {
+	while((ch = getopt(argc, argv, "uhb:y:")) != EOF) {
 		
 		switch(ch) {
 			case 'h':
 				// Be sure that this print is updated with all options from this 'switch'.
 				printf("Command line options:\n");
 				printf(" -u\t\t Unreal Simulation Mode.\n");
-				break;
+				printf(" -b [int]\t Set number of players on TEAM BLUE.(default=%i).\n",MAX_PLAYERS);
+				printf(" -y [int]\t Set number of players on TEAM YELLOW.(default=%i).\n",MAX_PLAYERS);
+				exit(0);
 			
 			case 'u':
 				ROBOT_DENSITY *= UNREAL_CONST;
 				BALL_DENSITY *= UNREAL_CONST;
 				printf("Unreal Simulation Mode ON.\n");
 				break;
+				
+			case 'b': 
+			{
+				int nplayers = atoi(optarg);
+				if(nplayers > MAX_PLAYERS)
+					printf("Asked for %i players on TEAM BLUE, but maximum defined on constants.h is %i. I'll leave the value on default.\n", nplayers, MAX_PLAYERS);
+				else {
+					printf("Set up %i players on TEAM BLUE.\n", nplayers);
+					playersTotal[TEAM_BLUE] = nplayers;
+				}
+			}
+			
+			case 'y':
+			{
+				int nplayers = atoi(optarg);
+				if(nplayers > MAX_PLAYERS)
+					printf("Asked for %i players on TEAM YELLOW, but maximum defined on constants.h is %i. I'll leave the value on default.\n", nplayers, MAX_PLAYERS);
+				else {
+					printf("Set up %i players on TEAM YELLOW.\n", nplayers);
+					playersTotal[TEAM_YELLOW] = nplayers;
+				}
+			}
 		}
 	}
 }

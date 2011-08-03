@@ -1,7 +1,8 @@
 #include "simulation.h"
+#include "utils.h"
 
-int main(int argc, char** argv) {
-	
+void printControls()
+{
 	printf("CONTROLS:\n");
 	printf("  > WASD - Move the playeres\n");
 	printf("  > E Q - Spin the playeres\n");
@@ -9,12 +10,17 @@ int main(int argc, char** argv) {
 	printf("  > V - Drible\n");
 	printf("  > TAB - Select player\n");
 	printf("  > IJKL - Move the ball\n\n");
+}
 
+int main(int argc, char** argv) {
+	
 	parseOptions(argc,argv);
 	
+	printControls();
+
 	initWorld();
 	initObjects();
-	
+
 	printf("Simulator Running!\n");
 
 	openRadiotosim();
