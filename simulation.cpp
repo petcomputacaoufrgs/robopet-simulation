@@ -32,7 +32,7 @@
 
 float MOTOR_FORCE = .0625;
 
-float ROBOT_DENSITY = 0.004;
+float ROBOT_DENSITY = 0.04;
 float BALL_DENSITY = 0.001; // the ball should weigh approximately 46 g
 float BALL_DAMP = .6; // 0 - 1
 float ROBOT_DAMP = 1;
@@ -253,6 +253,17 @@ void resetPlayers()
 		}		
 }
 
+void resetPlayersOwnField() 
+{
+	for(int team = 0; team < TEAM_TOTAL; team++)
+		for(int i = 0; i < playersTotal[team]; i++) { // robots must be initialized inside the field boundaries
+			robots[team][i].body->SetTransform( b2Vec2(((rand()%(int)(FIELD_X/2))+(FIELD_X/2)*team)+ARENA_BORDER, (rand()%(int)FIELD_Y)+ARENA_BORDER), 0 );
+			robots[team][i].body->SetLinearVelocity( b2Vec2(0,0) );
+			robots[team][i].forces = Vector(0,0);
+		}		
+}
+
+
 void keyboardFunc(unsigned char key, int xmouse, int ymouse)
 {
 		if (key == 9) //select player
@@ -333,6 +344,10 @@ void keyboardFunc(unsigned char key, int xmouse, int ymouse)
 			if( key == 'R' ) {
 				resetBall();
 				resetPlayers();
+			}
+			if( key == 'T' ) {
+				resetBall();
+				resetPlayersOwnField();
 			}
 	}
 }
