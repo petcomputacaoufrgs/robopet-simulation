@@ -16,6 +16,8 @@ int main(int argc, char** argv) {
 	
 	parseOptions(argc,argv);
 	
+	srand(time(0));
+	
 	printControls();
 
 	initWorld();
