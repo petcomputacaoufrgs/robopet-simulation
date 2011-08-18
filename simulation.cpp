@@ -31,8 +31,8 @@
 
 ////////////////////////////////////////////////////////////////////////
 
-float ROBOT_DENSITY = 0.015;
-float BALL_DENSITY = 0.002; // the ball should weigh approximately 46 g
+float ROBOT_DENSITY = 0.015; // robot weight ~3.8kg
+float BALL_DENSITY = 0.002;  // ball weight ~46g
 
 //-------------
 
@@ -409,21 +409,22 @@ void iterate()
 	
 	//draw the field
 	drawField();
-
+	
+	b2Vec2 position;
+	
 	// draw players
     for(int team = 0; team < TEAM_TOTAL; team++){
 		for(int i = 0; i < playersTotal[team]; i++) {
 
-			b2Vec2 position = robots[team][i].body->GetPosition();
+			position = robots[team][i].body->GetPosition();
 			position.y = WORLD_Y - position.y; //inverte o Y pra que ele cresça pra baixo
+			
 			glLineWidth(2);
 			
-			if (robotSelected == i && team == 1)
-			{
+			if (robotSelected == i && team == 1) {
 				glColor3f(1,.5,.5);
 			}
-			else
-			{
+			else {
 				glColor3f(1,1,1);
 			}
 						
@@ -442,18 +443,16 @@ void iterate()
 			drawLine(position.x , position.y,
 					position.x + cos(angle) * ROBOT_R , position.y + sin(angle) * ROBOT_R);
 						
-			// draw force vector
-			float vsize = 2.5;
+			// draw force vector (vector size is 2.5)
 			drawLine(position.x , position.y,
-				position.x + vsize*robots[team][i].forces.getX(), position.y - vsize*robots[team][i].forces.getY());
-			
+				position.x + 2.5*robots[team][i].forces.getX(), position.y - 2.5*robots[team][i].forces.getY());
 		}
 	}
 
 	glColor3f(1,1,1);
 	
 	// draw ball
-	b2Vec2 position = ball.body->GetPosition();
+	position = ball.body->GetPosition();
 	position.y = WORLD_Y - position.y; //inverte o Y pra que ele cresça pra baixo
 	
 	glBegin(GL_LINE_LOOP);
