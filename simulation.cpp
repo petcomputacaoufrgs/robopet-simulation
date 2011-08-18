@@ -2,14 +2,16 @@
 #include "math.h"
 #include "utils.h"
 
-
 ////////////////////////////////////////////////////////////////////////
 
-#define KICKFORCE .9 //how strong it should be?
-#define DRIBBLEFORCE .007 
+#define KICKFORCE .7 //how strong it should be?
+#define DRIBBLEFORCE .015 
 #define K_TRESHOLD .5 //how close to the ball the bot should be to kick it
 #define POINT_TO_TRESHOLD .05
 #define UNREAL_CONST 10.0 //constant for the unreal mode
+#define MOTOR_FORCE .0625
+#define BALL_DAMP .6 //damp = 0 - 1
+#define ROBOT_DAMP  1
 
 //-------------
 
@@ -27,15 +29,10 @@
 #define WINDOW_X (ARENA_WIDTH_MM/15)
 #define WINDOW_Y (ARENA_HEIGHT_MM/15)
 
-
 ////////////////////////////////////////////////////////////////////////
 
-float MOTOR_FORCE = .0625;
-
-float ROBOT_DENSITY = 0.04;
-float BALL_DENSITY = 0.001; // the ball should weigh approximately 46 g
-float BALL_DAMP = .6; // 0 - 1
-float ROBOT_DAMP = 1;
+float ROBOT_DENSITY = 0.015;
+float BALL_DENSITY = 0.002; // the ball should weigh approximately 46 g
 
 //-------------
 
@@ -121,7 +118,6 @@ void process()
 					//Here we test if the bot is close to the ball and near it.
 					//If so, and it wants to kick or dribble, we do it!
 					if(robots[i][j].closeToBall() && robots[i][j].pointingToBall()) {
-							robots[i][j].doDribble = 1; //just to understand... it's default if robot is close to the ball
 													
 							if (robots[i][j].doKick)
 							{
@@ -201,7 +197,7 @@ b2Body* newDynamicCircle(float x, float y, float radius, float density, float fr
 	fixtureDef.restitution = restitution;
 	body->CreateFixture(&fixtureDef);
 
-	cout << "calculated mass: " << body->GetMass()*100 << "kg" << endl;
+	cout << "calculated mass: " << body->GetMass()*100 << " kg" << endl;
 
     return body;
 }
@@ -229,12 +225,12 @@ void initObjects()
 		for(int i = 0; i < playersTotal[team]; i++) {  // robots must be initialized inside the field boundaries
 			robots[team][i].body = newDynamicCircle((rand()%(int)FIELD_X)+ARENA_BORDER, 
 													(rand()%(int)FIELD_Y)+ARENA_BORDER,
-													ROBOT_R, ROBOT_DENSITY, 1, 1, ROBOT_DAMP, 1.5);
+													ROBOT_R, ROBOT_DENSITY, 1, 1, ROBOT_DAMP, 1);
 			robots[team][i].id = i;
 		}
 
-	// ball (initialized at the center of the field)
-    ball.body = newDynamicCircle( WORLD_X/2, WORLD_Y/2,BALL_R, BALL_DENSITY, 1, .5, BALL_DAMP, 0.5);
+	// ball (initialized at the center of the field) 
+    ball.body = newDynamicCircle( WORLD_X/2, WORLD_Y/2,BALL_R, BALL_DENSITY, 1, 1, BALL_DAMP, .3);
 }
 
 void resetBall()
@@ -277,47 +273,48 @@ void keyboardFunc(unsigned char key, int xmouse, int ymouse)
 		}
 		else{
 			// Ball manual control	
-			b2Vec2 fv;
+			b2Vec2 fvBall;
 			float ballForce = .02; // Newtons*100
 
 			if( key == 'j' ) { //left
-				fv = b2Vec2(-ballForce, 0);
+				fvBall = b2Vec2(-ballForce, 0);
 			}
 
 			if( key == 'l' ) { //right
-				fv = b2Vec2(ballForce, 0);
+				fvBall = b2Vec2(ballForce, 0);
 			}
 
 			if( key == 'k' ) { //down
-				fv = b2Vec2(0, ballForce);
+				fvBall = b2Vec2(0, ballForce);
 			}
 
 			if( key == 'i' ) { //up
-				fv = b2Vec2(0, -ballForce);
+				fvBall = b2Vec2(0, -ballForce);
 			}
 
-			ball.body->ApplyForce(fv, ball.body->GetWorldCenter());
+			ball.body->ApplyForce(fvBall, ball.body->GetWorldCenter());
 			
 			// robot manual control
+			b2Vec2 fvRobot;
 			float robotForce = .9;
 			
 			if( key == 'a' ) {
-				fv = b2Vec2(-robotForce, 0);
+				fvRobot = b2Vec2(-robotForce, 0);
 			}
 
 			if( key == 'd' ) {
-				fv = b2Vec2(robotForce, 0);
+				fvRobot = b2Vec2(robotForce, 0);
 			}
 
 			if( key == 's' ) {
-				fv = b2Vec2(0, robotForce);
+				fvRobot = b2Vec2(0, robotForce);
 			}
 
 			if( key == 'w' ) {
-				fv = b2Vec2(0, -robotForce);
+				fvRobot = b2Vec2(0, -robotForce);
 			}
 			
-			robots[1][robotSelected].body->ApplyForce( fv, robots[1][robotSelected].body->GetWorldCenter());
+			robots[1][robotSelected].body->ApplyForce( fvRobot, robots[1][robotSelected].body->GetWorldCenter());
 			
 			if( key == 32 ) { // SPACE = KICK
 					robots[1][robotSelected].doKick = 1;
@@ -349,6 +346,10 @@ void keyboardFunc(unsigned char key, int xmouse, int ymouse)
 				resetBall();
 				resetPlayersOwnField();
 			}
+			if ( key == 'b' ) {
+				ball.body->SetLinearVelocity( b2Vec2(0,0) );
+			}
+				
 	}
 }
 
@@ -605,6 +606,7 @@ void parseOptions(int argc, char **argv)
 					printf("Set up %i players on TEAM BLUE.\n", nplayers);
 					playersTotal[TEAM_BLUE] = nplayers;
 				}
+				break;
 			}
 			
 			case 'y':
@@ -616,6 +618,7 @@ void parseOptions(int argc, char **argv)
 					printf("Set up %i players on TEAM YELLOW.\n", nplayers);
 					playersTotal[TEAM_YELLOW] = nplayers;
 				}
+				break;
 			}
 		}
 	}

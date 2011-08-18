@@ -9,7 +9,8 @@ void printControls()
 	printf("  > SPACE - Kick\n");
 	printf("  > V - Drible\n");
 	printf("  > TAB - Select player\n");
-	printf("  > IJKL - Move the ball\n\n");
+	printf("  > IJKL - Move the ball\n");
+	printf("  > B - Stop the ball\n\n");
 }
 
 int main(int argc, char** argv) {
