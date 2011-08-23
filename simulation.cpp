@@ -5,9 +5,10 @@
 ////////////////////////////////////////////////////////////////////////
 
 #define KICKFORCE .7 //how strong it should be?
-#define DRIBBLEFORCE .015 
+#define DRIBBLEFORCE .03 
 #define K_TRESHOLD .5 //how close to the ball the bot should be to kick it
-#define POINT_TO_TRESHOLD .05
+#define POINT_TO_TRESHOLD .95
+#define CLOSE_TO_BALL_LIMIT ROBOT_R + BALL_R + K_TRESHOLD
 #define UNREAL_CONST 10.0 //constant for the unreal mode
 #define MOTOR_FORCE .0625
 #define BALL_DAMP .6 //damp = 0 - 1
@@ -35,7 +36,6 @@ float ROBOT_DENSITY = 0.015; // robot weight ~3.8kg
 float BALL_DENSITY = 0.002;  // ball weight ~46g
 
 //-------------
-
 int playersTotal[TEAM_TOTAL] = {5, 5};
 Robot robots[TEAM_TOTAL][MAX_PLAYERS];
 Ball ball;
@@ -55,16 +55,14 @@ RoboPETClient radiotosim(PORT_RADIO_TO_SIM, IP_RADIO_TO_SIM);
 bool Robot::pointingToBall() 
 {
     //NOTE:both cmath and box2d computes trigonometric functions using angles in rad.
-
 	//ball_vec is the vector from the bot center to the ball center
-	RP::Vector ball_vec(ball.body->GetPosition().x - body->GetPosition().x,
+	RP::Vector ball_vec (ball.body->GetPosition().x - body->GetPosition().x,
 						(WORLD_Y - ball.body->GetPosition().y) - (WORLD_Y - body->GetPosition().y));
 
 	ball_vec.normalizeMe();
 
 	//bot_vec indicates where the bot is pointing
-	RP::Vector bot_vec( cos(body->GetAngle())*ROBOT_R,
-						sin(body->GetAngle())*ROBOT_R);
+	RP::Vector bot_vec( cos(body->GetAngle())*ROBOT_R, sin(body->GetAngle())*ROBOT_R);
 
 	bot_vec.normalizeMe();
 	//ball_vec (dot_product) bot_vec = |bal_vec| * |bot_vec| * cos(theta)
@@ -73,9 +71,7 @@ bool Robot::pointingToBall()
 	
 	float dotProd = ball_vec.dotProduct(bot_vec);
 	
-	DEBUG_VAR(dotProd);
-	
-	if(dotProd >= 0 && 1-POINT_TO_TRESHOLD <= dotProd){
+	if(dotProd >= 0 && POINT_TO_TRESHOLD <= dotProd){
 		return true;
 	}	
 
@@ -88,8 +84,8 @@ bool Robot::closeToBall()
 	RP::Vector ball_vec(ball.body->GetPosition().x - body->GetPosition().x,
 						ball.body->GetPosition().y - body->GetPosition().y);
 
-	//if the distance from the bot center to the ball center is (almost) zero, bot's close to the ball
-	if(ball_vec.getNorm() <= ROBOT_R + BALL_R + K_TRESHOLD) {
+	//if the distance from the robot center to the ball center is (almost) zero, robot's close to the ball
+	if(ball_vec.getNorm() <= CLOSE_TO_BALL_LIMIT) {
 		return true;
 	}
 
@@ -98,59 +94,57 @@ bool Robot::closeToBall()
 
 void process()
 {
-	b2Vec2 bot_move;
-	b2Vec2 ball_move;
+	b2Vec2 vet_move;
 	
 	//iterate to move the bots
 	for (int i = 0; i < TEAM_TOTAL; i++) {
 			for (int j = 0; j < playersTotal[i]; j++) {
 
-					//this is the vector of the bot[i][j] movement
-					bot_move = b2Vec2(MOTOR_FORCE*robots[i][j].forces.getX(), MOTOR_FORCE*robots[i][j].forces.getY());
-					robots[i][j].body->ApplyForce(bot_move, robots[i][j].body->GetWorldCenter());
+				//this is the vector of the robot[i][j] movement
+				vet_move = b2Vec2(MOTOR_FORCE*robots[i][j].forces.getX(), MOTOR_FORCE*robots[i][j].forces.getY());
+				robots[i][j].body->ApplyForce(vet_move, robots[i][j].body->GetWorldCenter());
 					
-					//printf("APPLIED FORCE: robot %i - <%f, %f>\n",j, bot_move.x,bot_move.y);
-					//printf("VELOCIDADE: robot %i - <%f, %f>\n", j, robots[i][j].body->GetLinearVelocityFromWorldPoint(b2Vec2(0,0)).x, robots[i][j].body->GetLinearVelocityFromWorldPoint(b2Vec2(0,0)).y);
+				//printf("APPLIED FORCE: robot %i - <%f, %f>\n",j, bot_move.x,bot_move.y);
+				//printf("VELOCIDADE: robot %i - <%f, %f>\n", j, robots[i][j].body->GetLinearVelocityFromWorldPoint(b2Vec2(0,0)).x, robots[i][j].body->GetLinearVelocityFromWorldPoint(b2Vec2(0,0)).y);
 
-					//rotates the botRobot
-					robots[i][j].body->SetTransform(robots[i][j].body->GetPosition(), robots[i][j].body->GetAngle()+robots[i][j].displacement_angle);
+				//rotates the botRobot
+				robots[i][j].body->SetTransform(robots[i][j].body->GetPosition(), robots[i][j].body->GetAngle()+robots[i][j].displacement_angle);
 					
-					//Here we test if the bot is close to the ball and near it.
-					//If so, and it wants to kick or dribble, we do it!
-					if(robots[i][j].closeToBall() && robots[i][j].pointingToBall()) {
-													
-							if (robots[i][j].doKick)
-							{
-									Vector ball_force(	ball.body->GetPosition().x - robots[i][j].body->GetPosition().x,
-													    ball.body->GetPosition().y - robots[i][j].body->GetPosition().y);
+				//Here we test if the bot is close to the ball and near it.
+				//If so, and it wants to kick or dribble, we do it!
+				if(robots[i][j].closeToBall() && robots[i][j].pointingToBall()) {
+						if (robots[i][j].doKick) {
+								Vector ball_force(	ball.body->GetPosition().x - robots[i][j].body->GetPosition().x,
+												    ball.body->GetPosition().y - robots[i][j].body->GetPosition().y);
 
-									ball_move = b2Vec2(ball_force.getX() * KICKFORCE, ball_force.getY() * KICKFORCE);
-									ball.body->ApplyForce(ball_move, ball.body->GetPosition());
-									//we need to clear the kick command to let the bot kick again
-									robots[i][j].doKick = 0;
-							}
-							else if(robots[i][j].doDribble){
-									Vector ball_force(robots[i][j].body->GetPosition().x - ball.body->GetPosition().x,
-													  robots[i][j].body->GetPosition().y - ball.body->GetPosition().y);
+								vet_move = b2Vec2(ball_force.getX() * KICKFORCE, ball_force.getY() * KICKFORCE);
+								ball.body->ApplyForce(vet_move, ball.body->GetPosition());
+								
+								//we need to clear the kick command to let the bot kick again
+								robots[i][j].doKick = 0;
+						}
+						else if(robots[i][j].doDribble) {
+								Vector ball_force(robots[i][j].body->GetPosition().x - ball.body->GetPosition().x,
+												  robots[i][j].body->GetPosition().y - ball.body->GetPosition().y);
 
-									ball_move = b2Vec2(ball_force.getX() * DRIBBLEFORCE, ball_force.getY() * DRIBBLEFORCE);
-									ball.body->ApplyForce(ball_move, ball.body->GetPosition());
-							}
-					}
-			}
+								vet_move = b2Vec2(ball_force.getX() * DRIBBLEFORCE, ball_force.getY() * DRIBBLEFORCE);
+								ball.body->ApplyForce(vet_move, ball.body->GetPosition());
+						}
+				}
+		}
 	}
 
 	// Prepare for simulation. Typically we use a time step of 1/60 of a
-	// second (60Hz) and 10 iterations. This provides a high quality simulation
-	// in most game scenarios.
-	float32 timeStep = 1.0f / 60.0f;
-	int32 velocityIterations = 10;
-	int positionIterations = 10;
+	// second (60Hz) and 10 iterations. This provides a high quality simulation in most game scenarios.
+	//float32 timeStep = 1.0f / 60.0f;
+	//int32 velocityIterations = 10;
+	//int positionIterations = 10;
 
 	// Instruct the world to perform a single step of simulation. It is
 	// generally best to keep the time step and iterations fixed.
-	world->Step(timeStep, velocityIterations, positionIterations);
-
+	//world->Step(timeStep, velocityIterations, positionIterations);
+	world->Step(.016666667, 10, 10);
+	
 	// Clear applied body forces. We didn't apply any forces, but you
 	// should know about this function.
 	world->ClearForces();
@@ -241,116 +235,114 @@ void resetBall()
 
 void resetPlayers() 
 {
-	for(int team = 0; team < TEAM_TOTAL; team++)
+	for(int team = 0; team < TEAM_TOTAL; team++) {
 		for(int i = 0; i < playersTotal[team]; i++) { // robots must be initialized inside the field boundaries
 			robots[team][i].body->SetTransform( b2Vec2((rand()%(int)FIELD_X)+ARENA_BORDER, (rand()%(int)FIELD_Y)+ARENA_BORDER), 0 );
 			robots[team][i].body->SetLinearVelocity( b2Vec2(0,0) );
 			robots[team][i].forces = Vector(0,0);
-		}		
+		}
+	}
 }
 
 void resetPlayersOwnField() 
 {
-	for(int team = 0; team < TEAM_TOTAL; team++)
+	for(int team = 0; team < TEAM_TOTAL; team++) {
 		for(int i = 0; i < playersTotal[team]; i++) { // robots must be initialized inside the field boundaries
 			robots[team][i].body->SetTransform( b2Vec2(((rand()%(int)(FIELD_X/2))+(FIELD_X/2)*team)+ARENA_BORDER, (rand()%(int)FIELD_Y)+ARENA_BORDER), 0 );
 			robots[team][i].body->SetLinearVelocity( b2Vec2(0,0) );
 			robots[team][i].forces = Vector(0,0);
 		}		
+	}
 }
-
 
 void keyboardFunc(unsigned char key, int xmouse, int ymouse)
 {
-		if (key == 9) //select player
+		if (key == 9) //TAB - select player
 		{
-			if (robotSelected < MAX_PLAYERS-1) {
-					robotSelected++;
-			}
-			else {
-				robotSelected = 0;
-			}
+			robotSelected = (robotSelected < MAX_PLAYERS-1) ? robotSelected+1 : 0; 
 		}
-		else{
-			// Ball manual control	
-			b2Vec2 fvBall;
-			float ballForce = .02; // Newtons*100
+		else {
+				// Ball manual control	
+				b2Vec2 fvBall;
+				float ballForce = .02; // Newtons*100
 
-			if( key == 'j' ) { //left
-				fvBall = b2Vec2(-ballForce, 0);
-			}
+				if( key == 'j' ) { //left
+					fvBall = b2Vec2(-ballForce, 0);
+				}
 
-			if( key == 'l' ) { //right
-				fvBall = b2Vec2(ballForce, 0);
-			}
+				if( key == 'l' ) { //right
+					fvBall = b2Vec2(ballForce, 0);
+				}
 
-			if( key == 'k' ) { //down
-				fvBall = b2Vec2(0, ballForce);
-			}
+				if( key == 'k' ) { //down
+					fvBall = b2Vec2(0, ballForce);
+				}
 
-			if( key == 'i' ) { //up
-				fvBall = b2Vec2(0, -ballForce);
-			}
+				if( key == 'i' ) { //up
+					fvBall = b2Vec2(0, -ballForce);
+				}
 
-			ball.body->ApplyForce(fvBall, ball.body->GetWorldCenter());
-			
-			// robot manual control
-			b2Vec2 fvRobot;
-			float robotForce = .9;
-			
-			if( key == 'a' ) {
-				fvRobot = b2Vec2(-robotForce, 0);
-			}
-
-			if( key == 'd' ) {
-				fvRobot = b2Vec2(robotForce, 0);
-			}
-
-			if( key == 's' ) {
-				fvRobot = b2Vec2(0, robotForce);
-			}
-
-			if( key == 'w' ) {
-				fvRobot = b2Vec2(0, -robotForce);
-			}
-			
-			robots[1][robotSelected].body->ApplyForce( fvRobot, robots[1][robotSelected].body->GetWorldCenter());
-			
-			if( key == 32 ) { // SPACE = KICK
-					robots[1][robotSelected].doKick = 1;
-					cout<<"kick="<<robots[1][robotSelected].doKick<<endl;
-			}
-
-			if( key == 'v' ) { //DRIBLE
-					robots[1][robotSelected].doDribble = !robots[1][robotSelected].doDribble;
-					cout<<"dribble="<<robots[1][robotSelected].doDribble<<endl;
-			}
-			if( key == 'q' ) { //turn left
-					robots[1][robotSelected].body->ApplyTorque( robotForce/2.5 );
-			}
-
-			if( key == 'e' ) { //turn right
-					robots[1][robotSelected].body->ApplyTorque( -robotForce /2.5 );
-			}
-			
-			// Other
-			if( key == 'r' ) {
-				resetBall();
-			}
-			
-			if( key == 'R' ) {
-				resetBall();
-				resetPlayers();
-			}
-			if( key == 'T' ) {
-				resetBall();
-				resetPlayersOwnField();
-			}
-			if ( key == 'b' ) {
-				ball.body->SetLinearVelocity( b2Vec2(0,0) );
-			}
+				ball.body->ApplyForce(fvBall, ball.body->GetWorldCenter());
 				
-	}
+				// robot manual control
+				b2Vec2 fvRobot;
+				float robotForce = .9;
+				
+				if( key == 'a' ) {
+					fvRobot = b2Vec2(-robotForce, 0);
+				}
+
+				if( key == 'd' ) {
+					fvRobot = b2Vec2(robotForce, 0);
+				}
+
+				if( key == 's' ) {
+					fvRobot = b2Vec2(0, robotForce);
+				}
+
+				if( key == 'w' ) {
+					fvRobot = b2Vec2(0, -robotForce);
+				}
+				
+				robots[1][robotSelected].body->ApplyForce( fvRobot, robots[1][robotSelected].body->GetWorldCenter());
+				
+				if( key == 32 ) { //SPACE = kick 
+						robots[1][robotSelected].doKick = 1;
+						cout<<"kick="<<robots[1][robotSelected].doKick<<endl;
+				}
+
+				if( key == 'v' ) { //DRIBLE
+						robots[1][robotSelected].doDribble = !robots[1][robotSelected].doDribble;
+						cout<<"dribble="<<robots[1][robotSelected].doDribble<<endl;
+				}
+				
+				if( key == 'q' ) { //turn left
+						robots[1][robotSelected].body->ApplyTorque( robotForce/2.5 );
+				}
+
+				if( key == 'e' ) { //turn right
+						robots[1][robotSelected].body->ApplyTorque( -robotForce/2.5 );
+				}
+				
+				// Other
+				if( key == 'r' ) {
+					resetBall();
+				}
+				
+				if( key == 'R' ) {
+					resetBall();
+					resetPlayers();
+				}
+				
+				if( key == 'T' ) {
+					resetBall();
+					resetPlayersOwnField();
+				}
+				
+				if ( key == 'b' ) {
+					ball.body->SetLinearVelocity( b2Vec2(0,0) );
+				}
+			}	
 }
 
 void drawField()
@@ -389,9 +381,7 @@ void drawField()
     // center cirlce
 	glBegin(GL_LINE_LOOP);
     for(register int k = 0; k < 15; k++) {
-		glVertex2f( (WORLD_X/2) + cosAngles[k]*5,
-					(WORLD_Y/2) + sinAngles[k]*5);
-
+		glVertex2f((WORLD_X/2) + cosAngles[k]*5, (WORLD_Y/2) + sinAngles[k]*5);
 	}
 	glEnd();
 }
@@ -403,7 +393,7 @@ void iterate()
     glLoadIdentity ();
     gluOrtho2D(0, WORLD_X, 0, WORLD_Y);
 	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity ();
+	glLoadIdentity();
 
 	glClear(GL_COLOR_BUFFER_BIT);
 	
@@ -411,9 +401,10 @@ void iterate()
 	drawField();
 	
 	b2Vec2 position;
+	float angle;
 	
 	// draw players
-    for(int team = 0; team < TEAM_TOTAL; team++){
+    for(int team = 0; team < TEAM_TOTAL; team++) {
 		for(int i = 0; i < playersTotal[team]; i++) {
 
 			position = robots[team][i].body->GetPosition();
@@ -431,20 +422,16 @@ void iterate()
 			// draw body
 			glBegin(GL_LINE_LOOP);
      		for(register int k = 0; k < 15; k++) {
-				glVertex2f( position.x + cosAngles[k]*ROBOT_R,
-							position.y + sinAngles[k]*ROBOT_R);
-
+				glVertex2f(position.x + cosAngles[k]*ROBOT_R, position.y + sinAngles[k]*ROBOT_R);
 			}
 			glEnd();
 			
 			// draw radius
-			float angle = robots[team][i].body->GetAngle();
-			
-			drawLine(position.x , position.y,
-					position.x + cos(angle) * ROBOT_R , position.y + sin(angle) * ROBOT_R);
+			angle = robots[team][i].body->GetAngle();
+			drawLine(position.x, position.y, (position.x + cos(angle) * ROBOT_R), (position.y + sin(angle) * ROBOT_R));
 						
 			// draw force vector (vector size is 2.5)
-			drawLine(position.x , position.y,
+			drawLine(position.x, position.y, 
 				position.x + 2.5*robots[team][i].forces.getX(), position.y - 2.5*robots[team][i].forces.getY());
 		}
 	}
@@ -457,9 +444,7 @@ void iterate()
 	
 	glBegin(GL_LINE_LOOP);
     for(register int k = 0; k < 15; k++) {
-		glVertex2f( position.x + cosAngles[k]*BALL_R,
-					position.y + sinAngles[k]*BALL_R);
-
+		glVertex2f( position.x + cosAngles[k]*BALL_R, position.y + sinAngles[k]*BALL_R);
 	}
 	glEnd();
 	
@@ -468,17 +453,9 @@ void iterate()
 	glutSwapBuffers();
 
 	// SIMULATOR MAIN LOOP
-		/*clrscr();
-		static int scrCount = 0;
-		scrCount++;
-		if(scrCount == SCR_CLEAR_DELAY) {
-			scrCount = 0;
-			clrscr();
-		}
-		rewindscr();*/
-		receive();
-		process();
-		send();
+	receive();
+	process();
+	send();
 }
 
 void initWorld()
