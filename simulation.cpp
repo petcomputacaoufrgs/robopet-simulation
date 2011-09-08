@@ -396,7 +396,7 @@ void iterate()
 	glLoadIdentity();
 
 	glClear(GL_COLOR_BUFFER_BIT);
-	
+/*
 	//draw the field
 	drawField();
 	
@@ -449,7 +449,7 @@ void iterate()
 	glEnd();
 	
 	glLineWidth(1);
-
+*/
 	glutSwapBuffers();
 
 	// SIMULATOR MAIN LOOP
@@ -480,8 +480,8 @@ void receive()
 {
 	RoboPET_WrapperPacket packet;
 	if (radiotosim.receive(packet) && packet.has_radiotosim()) {
-		printf("----------------------------\n");
-		printf("Received Radio-To-SIM\n");
+		//printf("----------------------------\n");
+		//printf("Received Radio-To-SIM\n");
 
 		RadioToSim data = packet.radiotosim();
 
@@ -496,7 +496,7 @@ void receive()
 			robots[data.team_id()][i].id = data.robots(i).id();
 			robots[data.team_id()][i].isUpdated = true;
 
-			printf("RECEIVED Robot[%i]: forceVector<%lf,%lf> (%i degrees)\n",data.team_id(),data.robots(i).force_x(),data.robots(i).force_y(),data.robots(i).displacement_theta());
+			//printf("RECEIVED Robot[%i]: forceVector<%lf,%lf> (%i degrees)\n",data.team_id(),data.robots(i).force_x(),data.robots(i).force_y(),data.robots(i).displacement_theta());
 		}
 	}
 }
@@ -509,8 +509,8 @@ void send()
 	//if(verbose) printf("----------------------------\n");
 	//if(verbose) printf("Sendindg Sim-To-Tracker\n");
 	
-	printf("----------------------------\n");
-	printf("Sendindg Sim-To-Tracker\n");
+	//printf("----------------------------\n");
+	//printf("Sendindg Sim-To-Tracker\n");
 
 	SimToTracker *simtotrackerPacket = packet.mutable_simtotracker();
 	SimToTracker::Ball *b = simtotrackerPacket->mutable_ball();
@@ -529,7 +529,7 @@ void send()
 				r->set_id( robots[team][i].id );
 
 				//if(verbose) printf("SENT Robot[%i]: <%lf,%lf> (%i degrees)\n",robots[team][i].id,robots[team][i].body->GetPosition().x,robots[team][i].body->GetPosition().y,(int)(robots[team][i].body->GetAngle()*180./M_PI));
-				printf("SENT Robot[%i]: <%lf,%lf> (%i degrees)\n",robots[team][i].id,robots[team][i].body->GetPosition().x,robots[team][i].body->GetPosition().y,(int)(robots[team][i].body->GetAngle()*180./M_PI));
+				//printf("SENT Robot[%i]: <%lf,%lf> (%i degrees)\n",robots[team][i].id,robots[team][i].body->GetPosition().x,robots[team][i].body->GetPosition().y,(int)(robots[team][i].body->GetAngle()*180./M_PI));
 		}
 
 	b->set_x( (int)M_TO_MM(ball.body->GetPosition().x - BORDER));
