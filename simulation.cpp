@@ -32,8 +32,8 @@
 
 ////////////////////////////////////////////////////////////////////////
 
-float ROBOT_DENSITY = 0.015; // robot weight ~3.8kg
-float BALL_DENSITY = 0.002;  // ball weight ~46g
+float ROBOT_DENSITY = 0.0725; // robot weight ~3.8kg
+float BALL_DENSITY = 0.008;  // ball weight ~46g
 
 //-------------
 int playersTotal[TEAM_TOTAL] = {5, 5};
@@ -396,7 +396,7 @@ void iterate()
 	glLoadIdentity();
 
 	glClear(GL_COLOR_BUFFER_BIT);
-/*
+
 	//draw the field
 	drawField();
 	
@@ -449,7 +449,7 @@ void iterate()
 	glEnd();
 	
 	glLineWidth(1);
-*/
+
 	glutSwapBuffers();
 
 	// SIMULATOR MAIN LOOP
@@ -480,8 +480,8 @@ void receive()
 {
 	RoboPET_WrapperPacket packet;
 	if (radiotosim.receive(packet) && packet.has_radiotosim()) {
-		//printf("----------------------------\n");
-		//printf("Received Radio-To-SIM\n");
+		printf("----------------------------\n");
+		printf("Received Radio-To-SIM\n");
 
 		RadioToSim data = packet.radiotosim();
 
@@ -496,7 +496,7 @@ void receive()
 			robots[data.team_id()][i].id = data.robots(i).id();
 			robots[data.team_id()][i].isUpdated = true;
 
-			//printf("RECEIVED Robot[%i]: forceVector<%lf,%lf> (%i degrees)\n",data.team_id(),data.robots(i).force_x(),data.robots(i).force_y(),data.robots(i).displacement_theta());
+			printf("RECEIVED Robot[%i]: forceVector<%lf,%lf> (%i degrees)\n",data.team_id(),data.robots(i).force_x(),data.robots(i).force_y(),data.robots(i).displacement_theta());
 		}
 	}
 }
